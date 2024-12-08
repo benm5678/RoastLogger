@@ -85,37 +85,22 @@ class BluetoothRoastLogger {
       this.updateButtonStates();
       return true;
     }
-
+  
     try {
       console.log("Attempting to connect...");
-
+  
       // Automatically connect to the device with the specified UUID
       this.device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [0xFFE0] }] // Filter by service UUID
       });
-
+  
+      this.device.addEventListener('gattserverdisconnected', this.onDisconnected.bind(this));
+  
       this.server = await this.device.gatt.connect();
       console.log(`Connected to ${this.device.name}`);
-
-      const services = await this.server.getPrimaryServices();
-      this.targetService = services[0]; // Assume first service is relevant
-      const characteristics = await this.targetService.getCharacteristics();
-
-      for (let characteristic of characteristics) {
-        if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
-          this.writableCharacteristic = characteristic;
-          // Set up to receive notifications from this characteristic
-          await this.writableCharacteristic.startNotifications();
-          this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
-          break;
-        }
-      }
-
-      if (!this.writableCharacteristic) {
-        throw new Error("Writable characteristic not found.");
-      }
-
-      console.log(`Writable characteristic found: ${this.writableCharacteristic.uuid}`);
+      this.connectServiceNotifications();
+  
+      
       this.connected = true;
       this.updateButtonStates(); // Enable buttons after successful connection
       return true;
@@ -126,6 +111,54 @@ class BluetoothRoastLogger {
       return false;
     }
   }
+  
+  async connectServiceNotifications()
+  {
+    const services = await this.server.getPrimaryServices();
+      this.targetService = services[0]; // Assume first service is relevant
+      const characteristics = await this.targetService.getCharacteristics();
+  
+      for (let characteristic of characteristics) {
+        if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+          this.writableCharacteristic = characteristic;
+          // Set up to receive notifications from this characteristic
+          await this.writableCharacteristic.startNotifications();
+          this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
+          break;
+        }
+      }
+  
+      if (!this.writableCharacteristic) {
+        throw new Error("Writable characteristic not found.");
+      }
+  
+      console.log(`Writable characteristic found: ${this.writableCharacteristic.uuid}`);
+  }
+
+  // Handle disconnection and attempt reconnection
+  onDisconnected(event) {
+    console.warn("Device disconnected:", event.target.name);
+    this.connected = false;
+    this.updateButtonStates();
+  
+    // Optional: Automatically try to reconnect after a delay
+    setTimeout(async () => {
+      console.log("Attempting to reconnect...");
+      try {
+        if (this.device.gatt.connected) {
+          console.log("Already connected");
+          return;
+        }
+        this.server = await this.device.gatt.connect();
+        this.connectServiceNotifications();
+        console.log(`Reconnected to ${this.device.name}`);
+        this.connected = true;
+        this.updateButtonStates();
+      } catch (reconnectError) {
+        console.error("Reconnection failed:", reconnectError);
+      }
+    }, 2000); // Retry after 2 seconds
+  }  
 
   enableDurationCounter() {
     if (!this.durationInterval) {
