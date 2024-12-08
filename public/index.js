@@ -70,16 +70,19 @@ class BluetoothRoastLogger {
     
   }
 
-  updateButtonStates(connected) {
-    document.getElementById("startButton").disabled = !connected;
-    document.getElementById("stopButton").disabled = !connected;
-    document.getElementById("chargeButton").disabled = !connected;
-    document.getElementById("dropButton").disabled = !connected;
+  updateButtonStates() {
+    document.getElementById("connectButton").disabled = this.connected;
+    document.getElementById("startButton").disabled = !this.connected || this.isLogging();
+    document.getElementById("stopButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime;
+    document.getElementById("chargeButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime;
+    document.getElementById("dropButton").disabled = !this.connected || !this.roastStartTime || this.roastEndTime;
   }
 
   async connect() {
     if (this.debug) {
       console.log("Debug mode enabled: Skipping Bluetooth connection");
+      this.connected = true;
+      this.updateButtonStates();
       return true;
     }
 
@@ -113,11 +116,13 @@ class BluetoothRoastLogger {
       }
 
       console.log(`Writable characteristic found: ${this.writableCharacteristic.uuid}`);
-      this.updateButtonStates(true); // Enable buttons after successful connection
+      this.connected = true;
+      this.updateButtonStates(); // Enable buttons after successful connection
       return true;
     } catch (error) {
       console.error("Connection failed:", error);
-      this.updateButtonStates(false); // Keep buttons disabled on failure
+      this.connected = false;
+      this.updateButtonStates(); // Keep buttons disabled on failure
       return false;
     }
   }
@@ -130,7 +135,16 @@ class BluetoothRoastLogger {
     }
   }
 
+  resetParams() {
+    this.roastStartTime = null;
+    this.roastEndTime = null;
+  }
+
   startLogging() {
+    if (this.roastStartTime && !confirm("You sure you want to clear collected data?"))
+      return;
+
+    this.resetParams();
     if (this.debug) {
       console.log("Debug mode: Generating fake data...");
       this.enableLogging = true;
@@ -171,6 +185,8 @@ class BluetoothRoastLogger {
         }
       }, 1000); // Send the command every second
     }
+
+    this.updateButtonStates();
   }
 
 
@@ -178,7 +194,13 @@ class BluetoothRoastLogger {
   stopLogging() {
     clearInterval(this.loggingInterval);
     this.enableLogging = false;
+    this.stopDurationCounter();
+    this.updateButtonStates();
     console.log("Logging stopped");
+  }
+
+  isLogging() {
+    return this.enableLogging;
   }
 
   /**
@@ -250,9 +272,17 @@ class BluetoothRoastLogger {
     this.roastStartTime = this.getLatestLogTime();
     this.updateChart();
     this.updateRoastDuration(); // Update roast duration when roast starts
+    this.updateButtonStates();
 
     // Update duration every second
     this.enableDurationCounter();
+  }
+
+  stopDurationCounter() {
+    if (this.durationInterval) {
+      clearInterval(this.durationInterval); // Ensure the interval is cleared
+      this.durationInterval = null; // Reset to null to prevent re-initialization
+    }
   }
 
   drop() {
@@ -262,10 +292,7 @@ class BluetoothRoastLogger {
     this.roastEndTime = new Date();
 
     // Stop updating the duration counter
-    if (this.durationInterval) {
-      clearInterval(this.durationInterval); // Ensure the interval is cleared
-      this.durationInterval = null; // Reset to null to prevent re-initialization
-    }
+    this.stopDurationCounter();
 
     // Stop logging
     this.stopLogging();
@@ -276,10 +303,11 @@ class BluetoothRoastLogger {
       const minutes = Math.floor(duration / 60000);
       const seconds = ((duration % 60000) / 1000).toFixed(0);
       const formattedDuration = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-      document.getElementById("duration").textContent = `Final Roast Time: ${formattedDuration}`;
+      document.getElementById("duration").textContent = `${formattedDuration}`;
     } else {
-      document.getElementById("duration").textContent = "Duration not available";
+      document.getElementById("duration").textContent = "N/A";
     }
+    this.updateButtonStates();
   }
 
 
@@ -337,12 +365,7 @@ const roastLogger = new BluetoothRoastLogger(debug = isFileProtocol);
 
 // Connect Button Logic
 document.getElementById("connectButton").addEventListener("click", async () => {
-  const connected = await roastLogger.connect();
-  if (connected) {
-    document.getElementById("startButton").disabled = false;
-    document.getElementById("chargeButton").disabled = false;
-    document.getElementById("dropButton").disabled = false;
-  }
+  await roastLogger.connect();
 });
 
 // Start/Stop Logging
