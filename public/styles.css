@@ -114,3 +114,21 @@ canvas {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* Status Grid */
+.status-grid {
+  display: flex;
+  flex-wrap: wrap; /* Allows items to wrap to a new line */
+  gap: 10px; /* Space between items */
+}
+
+.status-item {
+  flex: 1 1 calc(25% - 10px); /* Responsive: Adjusts to screen size */
+  min-width: 150px; /* Ensures items don't shrink too small */
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}

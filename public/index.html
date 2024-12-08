@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roast Temp Logger</title>
+  <title>Roast Logger</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
@@ -11,7 +11,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Roast Temp Logger</h1>
+      <h1>Roast Logger</h1>
       <div class="buttons">
         <button id="connectButton" class="button">Connect</button>
         <button id="startButton" class="button" disabled>Start Logging</button>
@@ -21,17 +21,27 @@
       </div>
     </div>
     <div class="main-content">
-      <canvas id="chart"></canvas>
-      <div class="status">
-        <p>Last Read Time: <span id="lastReadTime">-</span></p>
-        <p>BT: <span id="lastTemp1">-</span></p>
-        <p>MET: <span id="lastTemp2">-</span></p>
-        <p>Duration: <span id="duration">-</span></p>
-      </div>
       <div class="logs" id="logContainer">
-        <h3>Log Data:</h3>
+        <h3>Roast Data:</h3>
         <pre id="logData">No data yet...</pre>
       </div>
+      <div class="status">
+        <div class="status-grid">
+          <div class="status-item">
+            <strong>Last Read Time:</strong> <span id="lastReadTime">-</span>
+          </div>
+          <div class="status-item">
+            <strong>BT:</strong> <span id="lastTemp1">-</span>
+          </div>
+          <div class="status-item">
+            <strong>MET:</strong> <span id="lastTemp2">-</span>
+          </div>
+          <div class="status-item">
+            <strong>Duration:</strong> <span id="duration">-</span>
+          </div>
+        </div>
+      </div>  
+      <canvas id="chart"></canvas>
     </div>
   </div>
   <script src="index.js"></script>
