@@ -1,5 +1,6 @@
 class BluetoothRoastLogger {
-  constructor() {
+  constructor(debug = false) {
+    this.debug = debug; // Enable debug mode if true
     this.device = null;
     this.server = null;
     this.targetService = null;
@@ -15,6 +16,9 @@ class BluetoothRoastLogger {
     this.btData = [];
     this.metData = [];
     this.roastStartTime = null;
+    this.noSleep = new NoSleep(); // Initialize NoSleep.js
+    this.logStartTime = null; // Tracks when logging starts
+
 
     // Chart setup
     const ctx = document.getElementById('chart').getContext('2d');
@@ -59,6 +63,11 @@ class BluetoothRoastLogger {
   }
 
   async connect() {
+    if (this.debug) {
+      console.log("Debug mode enabled: Skipping Bluetooth connection");
+      return true;
+    }
+
     try {
       console.log("Attempting to connect...");
 
@@ -79,7 +88,7 @@ class BluetoothRoastLogger {
           this.writableCharacteristic = characteristic;
           // Set up to receive notifications from this characteristic
           await this.writableCharacteristic.startNotifications();
-          this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this)); // Handle incoming data
+          this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
           break;
         }
       }
@@ -98,36 +107,87 @@ class BluetoothRoastLogger {
     }
   }
 
-  startLogging() {
-    if (!this.writableCharacteristic) {
-      console.error("Writable characteristic not available");
-      return;
+  enableDurationCounter() {
+    if(!this.durationInterval) {
+      this.durationInterval = setInterval(() => {
+        this.updateRoastDuration(); // Update duration every second
+      }, 1000);
     }
-    console.log("Starting logging...");
-    this.enableLogging = true;
-    this.logData = [];
-
-    const readCommand = "#001Nrn"; // Command to read data (replace with your actual command)
-    const data = new TextEncoder().encode(readCommand);
-
-    const timer = setInterval(() => {
-      if (this.enableLogging) {
-        console.log("Sending data to characteristic...");
-        this.writableCharacteristic.writeValueWithoutResponse(data)
-          .then(() => {
-            console.log("Command sent successfully")
-          })
-          .catch(err => console.error("Error writing value:", err));
-      }
-    }, 1000 * 2); // Send the command every second
-
-    this.loggingInterval = timer;
   }
+
+  startLogging() {
+    if (this.debug) {
+      console.log("Debug mode: Generating fake data...");
+      this.enableLogging = true;
+      this.logData = [];
+      this.logStartTime = new Date(); // Set log start time
+      this.noSleep.enable();
+  
+      this.updateRoastDuration(); // Update duration immediately
+      this.enableDurationCounter();
+  
+      this.loggingInterval = setInterval(() => {
+        if (this.enableLogging) {
+          this.generateFakeData();
+        }
+      }, 2000); // Generate fake data every 2 seconds
+    } else {
+      if (!this.writableCharacteristic) {
+        console.error("Writable characteristic not available");
+        return;
+      }
+      console.log("Starting logging...");
+      this.enableLogging = true;
+      this.logData = [];
+      this.logStartTime = new Date(); // Set log start time
+      this.noSleep.enable();
+  
+      this.updateRoastDuration(); // Update duration immediately
+      this.enableDurationCounter();
+  
+      const readCommand = "#001Nrn";
+      const data = new TextEncoder().encode(readCommand);
+  
+      this.loggingInterval = setInterval(() => {
+        if (this.enableLogging) {
+          this.writableCharacteristic.writeValueWithoutResponse(data)
+            .then(() => console.log("Command sent successfully"))
+            .catch(err => console.error("Error writing value:", err));
+        }
+      }, 2000); // Send the command every 2 seconds
+    }
+  }
+  
+  
 
   stopLogging() {
     clearInterval(this.loggingInterval);
     this.enableLogging = false;
     console.log("Logging stopped");
+  }
+
+  /**
+   * Generates and logs fake data for testing.
+   */
+  generateFakeData() {
+    const bt = Math.random() * 300 + 150; // Random BT temperature between 150-450
+    const met = Math.random() * 300 + 150; // Random MET temperature between 150-450
+    const logTime = new Date();
+
+    this.lastTemp1 = bt.toFixed(1);
+    this.lastTemp2 = met.toFixed(1);
+    this.lastReadTime = logTime.toLocaleTimeString();
+
+    // Log the fake data
+    this.logData.push({ logTime, BT: bt, MET: met });
+
+    // Update UI
+    document.getElementById("lastReadTime").textContent = this.lastReadTime;
+    document.getElementById("lastTemp1").textContent = this.lastTemp1;
+    document.getElementById("lastTemp2").textContent = this.lastTemp2;
+
+    // Update chart
+    this.updateChart();
   }
 
   // Handle data received from the device (this is the 'characteristicvaluechanged' event handler)
@@ -174,12 +234,62 @@ class BluetoothRoastLogger {
     console.log("Roast started");
     this.roastStartTime = new Date();
     this.updateChart();
+    this.updateRoastDuration(); // Update roast duration when roast starts
+  
+    // Update duration every second
+    this.enableDurationCounter();
   }
-
+  
   drop() {
     console.log("Roast ended");
+    
+    // Set the roast end time
+    this.roastEndTime = new Date();
+    
+    // Stop updating the duration counter
+    if (this.durationInterval) {
+      clearInterval(this.durationInterval); // Ensure the interval is cleared
+      this.durationInterval = null; // Reset to null to prevent re-initialization
+    }
+    
+    // Stop logging
     this.stopLogging();
+    
+    // Calculate and display the final roast time
+    if (this.roastStartTime && this.roastEndTime) {
+      const duration = this.roastEndTime - this.roastStartTime;
+      const minutes = Math.floor(duration / 60000);
+      const seconds = ((duration % 60000) / 1000).toFixed(0);
+      const formattedDuration = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+      document.getElementById("duration").textContent = `Final Roast Time: ${formattedDuration}`;
+    } else {
+      document.getElementById("duration").textContent = "Duration not available";
+    }
   }
+  
+  
+
+  updateRoastDuration() {
+    const now = new Date();
+    let duration;
+  
+    if (this.roastStartTime) {
+      // Duration since roast started
+      duration = now - this.roastStartTime;
+    } else if (this.logStartTime) {
+      // Duration since logging started
+      duration = now - this.logStartTime;
+    } else {
+      document.getElementById("duration").textContent = "-";
+      return;
+    }
+  
+    const minutes = Math.floor(duration / 60000);
+    const seconds = ((duration % 60000) / 1000).toFixed(0);
+    const formattedDuration = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    document.getElementById("duration").textContent = formattedDuration;
+  }
+  
 
   updateChart() {
     if (this.roastStartTime) {
@@ -200,7 +310,7 @@ class BluetoothRoastLogger {
   }
 }
 
-const roastLogger = new BluetoothRoastLogger();
+const roastLogger = new BluetoothRoastLogger(debug=true);
 
 // Connect Button Logic
 document.getElementById("connectButton").addEventListener("click", async () => {
