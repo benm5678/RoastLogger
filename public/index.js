@@ -310,7 +310,8 @@ class BluetoothRoastLogger {
   }
 }
 
-const roastLogger = new BluetoothRoastLogger(debug=true);
+const isFileProtocol = window.location.protocol === "file:";
+const roastLogger = new BluetoothRoastLogger(debug=isFileProtocol);
 
 // Connect Button Logic
 document.getElementById("connectButton").addEventListener("click", async () => {

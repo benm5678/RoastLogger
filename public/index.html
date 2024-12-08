@@ -1,117 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roast Temp Logger</title>
+  <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      color: #333;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-
-    .container {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      width: 90%;
-      max-width: 500px;
-      text-align: center;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      font-size: 24px;
-    }
-
-    .button {
-      display: inline-block;
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      color: #fff;
-      background-color: #007bff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    .button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
-    .button:hover:not(:disabled) {
-      background-color: #0056b3;
-    }
-
-    .status {
-      margin-top: 20px;
-      font-size: 18px;
-    }
-
-    .logs {
-      margin-top: 20px;
-      text-align: left;
-      overflow-y: auto;
-      max-height: 150px;
-      background: #f9f9f9;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    .logs pre {
-      margin: 0;
-      font-family: monospace;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    #chart {
-      margin-top: 20px;
-      width: 100%;
-      max-width: 500px;
-      height: 300px;
-    }
-  </style>
 </head>
-
 <body>
   <div class="container">
-    <h1>Roast Temp Logger</h1>
-    <button id="connectButton" class="button">Connect</button>
-    <button id="chargeButton" class="button" disabled>Charge</button>
-    <button id="dropButton" class="button" disabled>Drop</button>
-    <button id="startButton" class="button" disabled>Start Logging</button>
-    <button id="stopButton" class="button" disabled>Stop Logging</button>
-    <div class="status">
-      <p>Last Read Time: <span id="lastReadTime">-</span></p>
-      <p>BT: <span id="lastTemp1">-</span></p>
-      <p>MET: <span id="lastTemp2">-</span></p>
-      <p>Duration: <span id="duration">-</span></p>
+    <div class="header">
+      <h1>Roast Temp Logger</h1>
+      <div class="buttons">
+        <button id="connectButton" class="button">Connect</button>
+        <button id="startButton" class="button" disabled>Start Logging</button>
+        <button id="stopButton" class="button" disabled>Stop Logging</button>
+        <button id="chargeButton" class="button" disabled>Charge</button>
+        <button id="dropButton" class="button" disabled>Drop</button>
+      </div>
     </div>
-    <div class="logs" id="logContainer">
-      <h3>Log Data:</h3>
-      <pre id="logData">No data yet...</pre>
+    <div class="main-content">
+      <canvas id="chart"></canvas>
+      <div class="status">
+        <p>Last Read Time: <span id="lastReadTime">-</span></p>
+        <p>BT: <span id="lastTemp1">-</span></p>
+        <p>MET: <span id="lastTemp2">-</span></p>
+        <p>Duration: <span id="duration">-</span></p>
+      </div>
+      <div class="logs" id="logContainer">
+        <h3>Log Data:</h3>
+        <pre id="logData">No data yet...</pre>
+      </div>
     </div>
-    <canvas id="chart"></canvas>
   </div>
-
   <script src="index.js"></script>
 </body>
-
 </html>

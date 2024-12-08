@@ -1,0 +1,116 @@
+/* General styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+  color: #333;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1200px; /* Prevents container from getting too wide */
+  height: 100vh; /* Full viewport height */
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  padding: 20px;
+  background-color: #007bff;
+  color: #fff;
+  text-align: center;
+  flex-shrink: 0; /* Prevents the header from shrinking */
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.buttons {
+  margin-top: 10px;
+}
+
+/* Buttons */
+.button {
+  margin: 5px;
+  padding: 10px 15px;
+  font-size: 14px;
+  color: #fff;
+  background-color: #0056b3;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.button:hover:not(:disabled) {
+  background-color: #003d80;
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 20px;
+  gap: 20px;
+  overflow: hidden;
+}
+
+/* Canvas */
+canvas {
+  flex-grow: 1; /* Takes up remaining space */
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+  min-height: 200px; /* Prevents canvas from shrinking too much */
+}
+
+/* Status */
+.status {
+  font-size: 16px;
+  background: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  flex-shrink: 0; /* Prevents shrinking */
+  max-height: 200px; /* Limits the height */
+  overflow-y: auto; /* Allows scrolling if content exceeds max height */
+}
+
+/* Logs */
+.logs {
+  font-size: 14px;
+  background: #f9f9f9;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  flex-shrink: 0; /* Prevents shrinking */
+  overflow-y: auto; /* Allows scrolling */
+  max-height: 200px; /* Fixed height for logs panel */
+}
+
+.logs pre {
+  margin: 0;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
