@@ -79,8 +79,26 @@ class BluetoothRoastLogger {
     document.getElementById("connectButton").disabled = this.connected;
     document.getElementById("startButton").disabled = !this.connected || this.isLogging();
     document.getElementById("stopButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime;
-    document.getElementById("chargeButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime;
-    document.getElementById("dropButton").disabled = !this.connected || !this.roastStartTime || this.roastEndTime;
+    document.getElementById("chargeButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime || !this.getCoffeeName();
+    document.getElementById("dropButton").disabled = !this.connected || !this.isLogging() || !this.roastStartTime || this.roastEndTime;
+    document.getElementById('coffeeName').disabled = this.isLogging() && this.roastStartTime;
+    document.getElementById('coffeeAmount').disabled = this.isLogging() && this.roastStartTime;
+  }
+
+  getCoffeeName() {
+    return document.getElementById("coffeeName").value
+  }
+
+  setCoffeeName(name) {
+    document.getElementById("coffeeName").value = name;
+  }
+
+  getCoffeeAmount() {
+    return document.getElementById("coffeeAmount").value
+  }
+
+  setCoffeeAmount(amount) {
+    document.getElementById("coffeeAmount").value = amount;
   }
 
   async connect() {
@@ -398,6 +416,8 @@ class BluetoothRoastLogger {
     const db = firebase.firestore();
     db.collection(DB_COLLECTION).doc("active").set({
       roastStartTime: this.roastStartTime,
+      coffeeName: this.getCoffeeName(),
+      coffeeAmount: this.getCoffeeAmount(),
       logData: this.logData,
     })
       .then(() => {
@@ -411,6 +431,8 @@ class BluetoothRoastLogger {
   loadRoastData(roastData) {
     this.roastStartTime = roastData.roastStartTime;
     this.logData = roastData.logData;
+    this.setCoffeeName(roastData.coffeeName ?? '');
+    this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
     this.updateButtonStates();
     this.updateChart();
   }
@@ -452,6 +474,10 @@ document.getElementById('enableAlarmCheckbox').addEventListener('change', functi
   if(this.checked) {
     speakWithVoice(""); // Required to enable on iOS from human click
   }
+});
+
+document.getElementById('coffeeName').addEventListener('input', function () {
+  roastLogger.updateButtonStates();
 });
 
 function initApp() {
