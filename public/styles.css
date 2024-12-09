@@ -9,18 +9,21 @@ body {
   justify-content: center;
   align-items: flex-start;
   height: 100vh;
+  overflow: hidden;
 }
 
 .container {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 1200px; /* Prevents container from getting too wide */
-  height: 100vh; /* Full viewport height */
+  max-width: 1200px;
+  height: 100vh;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  margin: 0px;
+  padding: 5px;
 }
 
 /* Header */
@@ -29,16 +32,11 @@ body {
   background-color: #007bff;
   color: #fff;
   text-align: center;
-  flex-shrink: 0; /* Prevents the header from shrinking */
 }
 
 .header h1 {
   margin: 0;
   font-size: 24px;
-}
-
-.buttons {
-  margin-top: 10px;
 }
 
 /* Buttons */
@@ -63,72 +61,93 @@ body {
   background-color: #003d80;
 }
 
-/* Main Content */
-.main-content {
+/* Common Section Styles */
+.section {
+  width: 100%;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  padding: 5px;
+  box-sizing: border-box;
+  margin-bottom: 15px;
+}
+
+/* Coffee Input Section */
+.coffee-section {
   display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  padding: 20px;
-  gap: 20px;
-  overflow: hidden;
+  flex-wrap: nowrap; /* Forces items to stay on the same line */
+  align-items: center;
+  gap: 20px; /* Space between the inputs */
+}
+
+.coffee-input-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%; /* Ensures inputs take full width */
 }
 
 /* Canvas */
 canvas {
-  flex-grow: 1; /* Takes up remaining space */
+  flex-grow: 1;
   width: 100%;
   border: 1px solid #ccc;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   object-fit: contain;
-  min-height: 200px; /* Prevents canvas from shrinking too much */
+  min-height: 200px;
 }
 
-/* Status */
-.status {
-  font-size: 16px;
-  background: #f9f9f9;
+.coffee-input {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  flex-shrink: 0; /* Prevents shrinking */
-  max-height: 200px; /* Limits the height */
-  overflow-y: auto; /* Allows scrolling if content exceeds max height */
+  flex: 1; /* Allows each input field to take available space equally */
 }
 
-/* Logs */
-.logs {
+.coffee-input label {
   font-size: 14px;
-  background: #f9f9f9;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  flex-shrink: 0; /* Prevents shrinking */
-  overflow-y: auto; /* Allows scrolling */
-  max-height: 200px; /* Fixed height for logs panel */
+  font-weight: bold;
+  white-space: nowrap; /* Ensures label and input appear on the same line */
 }
 
-.logs pre {
-  margin: 0;
-  font-family: monospace;
-  white-space: pre-wrap;
-  word-wrap: break-word;
+.coffee-input input {
+  padding: 5px;
+  font-size: 14px;
+  width: 100%; /* Full width of its container */
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.error-message {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  flex: 1; /* Ensures error message takes the full width */
+}
+
+/* Main Content */
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  gap: 15px; /* Adds consistent spacing between sections */
 }
 
 /* Status Grid */
 .status-grid {
   display: flex;
-  flex-wrap: wrap; /* Allows items to wrap to a new line */
-  gap: 10px; /* Space between items */
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .status-item {
-  flex: 1 1 calc(25% - 10px); /* Responsive: Adjusts to screen size */
-  min-width: 150px; /* Ensures items don't shrink too small */
+  flex: 1 1 calc(25% - 10px);
   background: #fff;
   border: 1px solid #ccc;
   padding: 10px;
   border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
