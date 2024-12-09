@@ -457,3 +457,23 @@ document.getElementById("dropButton").addEventListener("click", () => {
 document.getElementById("saveButton").addEventListener("click", () => {
   roastLogger.saveRoastFile();
 });
+
+function initApp() {
+  const db = firebase.firestore();
+  var docRef = db.collection("roast_logs").doc("active");
+  docRef.get().then((doc) => {
+      if (doc.exists) {
+          console.log("Got active roast data:", doc.data());
+      } else {
+          // doc.data() will be undefined in this case
+          console.log("No active roast found");
+      }
+  }).catch((error) => {
+      showError(`Failed to load state from database! | ${error}`);
+  });
+}
+
+function showError(msg) {
+  console.error(msg);
+  document.getElementById("errorMessage").textContent = msg;
+}
