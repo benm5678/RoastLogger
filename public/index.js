@@ -412,24 +412,60 @@ class BluetoothRoastLogger {
     this.chart.update();
   }
 
+  loadRecentRoasts() {
+    const db = firebase.firestore();
+    const collectionRef = db.collection(DB_COLLECTION);
+
+    // Query for documents that start with "roast_"
+    collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
+      .orderBy(firebase.firestore.FieldPath.documentId(), 'asc')
+      .limit(10)
+      .get()
+      .then((querySnapshot) => {
+        const roasts = [];
+        querySnapshot.forEach((doc) => {
+          roasts.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        console.log('Last 10 roasts:', roasts);
+      })
+      .catch((error) => {
+        console.error("Error loading roasts: ", error);
+      });
+  }
+
   saveRoastData() {
     const db = firebase.firestore();
-    db.collection(DB_COLLECTION).doc("active").set({
-      roastStartTime: this.roastStartTime,
+    const docName = this.roastEndTime ? `roast_${this.roastStartTime.toISOString().replace(/[:.-]/g, '')}` : 'active';
+
+    db.collection(DB_COLLECTION).doc(docName).set({
+      roastStartTime: this.roastStartTime ?? null,
+      roastEndTime: this.roastEndTime ?? null,
       coffeeName: this.getCoffeeName(),
       coffeeAmount: this.getCoffeeAmount(),
       logData: this.logData,
-    })
-      .then(() => {
-        console.log("Updated active roast data in db!");
-      })
-      .catch((error) => {
-        showError(`Failed to load state from database! | ${error}`);
-      });
+    }).then(() => {
+      console.log(`Saved roast data as '${docName}' in db!`);
+    }).catch((error) => {
+      showError(`Failed to save roast data to database! | ${error}`);
+    });
+
+    if (this.roastEndTime) {
+      db.collection(DB_COLLECTION).doc('active').delete()
+        .then(() => {
+          console.log('Deleted the active roast document.');
+        })
+        .catch((error) => {
+          showError(`Failed to delete the active roast document! | ${error}`);
+        });
+    }
   }
 
   loadRoastData(roastData) {
     this.roastStartTime = roastData.roastStartTime;
+    this.roastEndTime = roastData.roastEndTime;
     this.logData = roastData.logData;
     this.setCoffeeName(roastData.coffeeName ?? '');
     this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
@@ -471,7 +507,7 @@ document.getElementById("saveButton").addEventListener("click", () => {
 document.getElementById('enableAlarmCheckbox').addEventListener('change', function () {
   const maxTempInput = document.getElementById('maxTempInput');
   maxTempInput.style.display = this.checked ? 'inline-block' : 'none';
-  if(this.checked) {
+  if (this.checked) {
     speakWithVoice(""); // Required to enable on iOS from human click
   }
 });
