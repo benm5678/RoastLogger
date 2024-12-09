@@ -1,3 +1,11 @@
+const DB_COLLECTION = "roast_logs";
+
+// Check if the URL contains the debug parameter
+const urlParams = new URLSearchParams(window.location.search);
+const debugParam = urlParams.get("debug") === "true";
+const isFileProtocol = window.location.protocol === "file:";
+const debug = debugParam || isFileProtocol;
+
 class BluetoothRoastLogger {
   constructor(debug = false) {
     this.debug = debug; // Enable debug mode if true
@@ -7,9 +15,6 @@ class BluetoothRoastLogger {
     this.writableCharacteristic = null;
     this.enableLogging = false;
     this.logData = [];
-    this.lastTemp1 = "-";
-    this.lastTemp2 = "-";
-    this.lastReadTime = "-";
     this.loggingInterval = null;
     this.peripheralName = "DSD TECH"; // Target device name
     this.timeData = [];
@@ -54,7 +59,7 @@ class BluetoothRoastLogger {
             ticks: {
               autoSkip: true, // Chart.js will handle skipping based on available space
               maxTicksLimit: 10, // Ensure no more than 10 labels appear
-              callback: function(value, index) {
+              callback: function (value, index) {
                 // Only show every Nth label explicitly (e.g., every 10th)
                 const skipInterval = Math.ceil(this.chart.data.labels.length / 10); // Dynamically adjust interval
                 return index % skipInterval === 0 ? this.getLabelForValue(value) : '';
@@ -67,7 +72,7 @@ class BluetoothRoastLogger {
         }
       }
     });
-    
+
   }
 
   updateButtonStates() {
@@ -85,22 +90,22 @@ class BluetoothRoastLogger {
       this.updateButtonStates();
       return true;
     }
-  
+
     try {
       console.log("Attempting to connect...");
-  
+
       // Automatically connect to the device with the specified UUID
       this.device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [0xFFE0] }] // Filter by service UUID
       });
-  
+
       this.device.addEventListener('gattserverdisconnected', this.onDisconnected.bind(this));
-  
+
       this.server = await this.device.gatt.connect();
       console.log(`Connected to ${this.device.name}`);
       this.connectServiceNotifications();
-  
-      
+
+
       this.connected = true;
       this.updateButtonStates(); // Enable buttons after successful connection
       return true;
@@ -111,28 +116,27 @@ class BluetoothRoastLogger {
       return false;
     }
   }
-  
-  async connectServiceNotifications()
-  {
+
+  async connectServiceNotifications() {
     const services = await this.server.getPrimaryServices();
-      this.targetService = services[0]; // Assume first service is relevant
-      const characteristics = await this.targetService.getCharacteristics();
-  
-      for (let characteristic of characteristics) {
-        if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
-          this.writableCharacteristic = characteristic;
-          // Set up to receive notifications from this characteristic
-          await this.writableCharacteristic.startNotifications();
-          this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
-          break;
-        }
+    this.targetService = services[0]; // Assume first service is relevant
+    const characteristics = await this.targetService.getCharacteristics();
+
+    for (let characteristic of characteristics) {
+      if (characteristic.properties.write || characteristic.properties.writeWithoutResponse) {
+        this.writableCharacteristic = characteristic;
+        // Set up to receive notifications from this characteristic
+        await this.writableCharacteristic.startNotifications();
+        this.writableCharacteristic.addEventListener('characteristicvaluechanged', this.handleData.bind(this));
+        break;
       }
-  
-      if (!this.writableCharacteristic) {
-        throw new Error("Writable characteristic not found.");
-      }
-  
-      console.log(`Writable characteristic found: ${this.writableCharacteristic.uuid}`);
+    }
+
+    if (!this.writableCharacteristic) {
+      throw new Error("Writable characteristic not found.");
+    }
+
+    console.log(`Writable characteristic found: ${this.writableCharacteristic.uuid}`);
   }
 
   // Handle disconnection and attempt reconnection
@@ -140,7 +144,7 @@ class BluetoothRoastLogger {
     console.warn("Device disconnected:", event.target.name);
     this.connected = false;
     this.updateButtonStates();
-  
+
     // Optional: Automatically try to reconnect after a delay
     setTimeout(async () => {
       console.log("Attempting to reconnect...");
@@ -158,7 +162,7 @@ class BluetoothRoastLogger {
         console.error("Reconnection failed:", reconnectError);
       }
     }, 2000); // Retry after 2 seconds
-  }  
+  }
 
   enableDurationCounter() {
     if (!this.durationInterval) {
@@ -242,60 +246,56 @@ class BluetoothRoastLogger {
   generateFakeData() {
     const bt = Math.random() * 300 + 150; // Random BT temperature between 150-450
     const met = Math.random() * 300 + 150; // Random MET temperature between 150-450
-    const logTime = new Date();
 
-    this.lastTemp1 = bt.toFixed(1);
-    this.lastTemp2 = met.toFixed(1);
-    this.lastReadTime = logTime.toLocaleTimeString();
-
-    // Log the fake data
-    this.logData.push({ logTime, BT: bt, MET: met });
-
-    // Update UI
-    document.getElementById("lastReadTime").textContent = this.lastReadTime;
-    document.getElementById("lastTemp1").textContent = this.lastTemp1;
-    document.getElementById("lastTemp2").textContent = this.lastTemp2;
-
-    // Update chart
-    this.updateChart();
+    this.processData(bt, met);
   }
 
   // Handle data received from the device (this is the 'characteristicvaluechanged' event handler)
   handleData(event) {
     const characteristic = event.target;
     const data = characteristic.value;
-    this.processData(data);
+    this.parseIncomingSensorData(data);
   }
 
-  processData(data) {
+  parseIncomingSensorData(data) {
     const lastResponse = new TextDecoder().decode(data);
     console.log(`Received data: ${lastResponse}`);
 
     if (lastResponse.length >= 10 && lastResponse !== "Err\r\n") {
-      // Parse BT and MET values from the data string
-      const temp1Hex = lastResponse.substring(1, 5); // Assuming BT is at positions 1-4
-      const temp2Hex = lastResponse.substring(7, 11); // Assuming MET is at positions 7-10
+      // Parse BT and ET values from the data string
+      const btHex = lastResponse.substring(1, 5); // Assuming BT is at positions 1-4
+      const etHex = lastResponse.substring(7, 11); // Assuming MET is at positions 7-10
 
-      const bt = parseInt(temp1Hex, 16) / 10;
-      const met = parseInt(temp2Hex, 16) / 10;
+      const bt = parseInt(btHex, 16) / 10;
+      const et = parseInt(etHex, 16) / 10;
 
       // Only log if the values are reasonable
-      if (bt < 600 && bt > 0 && met < 600 && met > 0) {
-        const logTime = new Date();
-        this.lastTemp1 = bt.toFixed(1);
-        this.lastTemp2 = met.toFixed(1);
-        this.lastReadTime = logTime.toLocaleTimeString();
+      if (bt < 600 && bt > 0 && et < 600 && et > 0) {
+        this.processData(bt, et)
+      }
+    }
+  }
 
-        // Log the data
-        this.logData.push({ logTime, BT: bt, MET: met });
+  processData(bt, et) {
+    // Log the data
+    const logTime = new Date();
+    bt = parseInt(bt)
+    et = parseInt(et)
+    this.logData.push({ logTime, BT: bt, MET: et });
 
-        // Update UI
-        document.getElementById("lastReadTime").textContent = this.lastReadTime;
-        document.getElementById("lastTemp1").textContent = this.lastTemp1;
-        document.getElementById("lastTemp2").textContent = this.lastTemp2;
+    // Update UI
+    document.getElementById("roastStartTime").textContent = this.roastStartTime ? this.roastStartTime.toLocaleTimeString() : "-";
+    document.getElementById("BT").textContent = bt;
+    document.getElementById("ET").textContent = et;
 
-        // Update chart with new data
-        this.updateChart();
+    // Update chart with new data
+    this.updateChart();
+
+    // Alert
+    if (document.getElementById('enableAlarmCheckbox').checked) {
+      const maxTemp = parseInt(document.getElementById('maxTempInput').value, 10);
+      if (bt > maxTemp) {
+        speakWithVoice(`Temp is ${bt}`);
       }
     }
   }
@@ -339,7 +339,7 @@ class BluetoothRoastLogger {
       const formattedDuration = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
       document.getElementById("duration").textContent = `${formattedDuration}`;
     } else {
-      document.getElementById("duration").textContent = "N/A";
+      document.getElementById("duration").textContent = "-";
     }
     this.updateButtonStates();
 
@@ -400,12 +400,12 @@ class BluetoothRoastLogger {
       roastStartTime: this.roastStartTime,
       logData: this.logData,
     })
-    .then(() => {
-      console.log("Updated active roast data in db!");
-    })
-    .catch((error) => {
-      showError(`Failed to load state from database! | ${error}`);
-    });
+      .then(() => {
+        console.log("Updated active roast data in db!");
+      })
+      .catch((error) => {
+        showError(`Failed to load state from database! | ${error}`);
+      });
   }
 
   loadRoastData(roastData) {
@@ -414,49 +414,7 @@ class BluetoothRoastLogger {
     this.updateButtonStates();
     this.updateChart();
   }
-
-  saveRoastFile() {
-    const fileName = "roast_log.rl";
-    const fileData = "boo";
-
-    const blob = new Blob([fileData], { type: "application/octet-stream" });
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-
-    if (isIOS) {
-        // For iOS, create a data URL and open it in a new tab
-        const reader = new FileReader();
-        reader.onloadend = function () {
-            const dataUrl = reader.result;
-
-            // Open in a new tab or allow manual saving
-            const popup = window.open(dataUrl, "_blank");
-            if (!popup) {
-                alert("Please enable pop-ups to download the file.");
-            }
-        };
-        reader.readAsDataURL(blob);
-    } else {
-        // For other browsers, use the download attribute
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName; // Default name if none provided
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }
-  }
-
 }
-
-const DB_COLLECTION = "roast_logs";
-
-// Check if the URL contains the debug parameter
-const urlParams = new URLSearchParams(window.location.search);
-const debugParam = urlParams.get("debug") === "true";
-const isFileProtocol = window.location.protocol === "file:";
-const debug = debugParam || isFileProtocol;
 
 // Initialize the BluetoothRoastLogger
 const roastLogger = new BluetoothRoastLogger(debug);
@@ -485,23 +443,63 @@ document.getElementById("dropButton").addEventListener("click", () => {
 });
 
 document.getElementById("saveButton").addEventListener("click", () => {
-  roastLogger.saveRoastFile();
+  roastLogger.saveRoastData();
+});
+
+document.getElementById('enableAlarmCheckbox').addEventListener('change', function () {
+  const maxTempInput = document.getElementById('maxTempInput');
+  maxTempInput.style.display = this.checked ? 'inline-block' : 'none';
+  if(this.checked) {
+    speakWithVoice(""); // Required to enable on iOS from human click
+  }
 });
 
 function initApp() {
   const db = firebase.firestore();
   var docRef = db.collection(DB_COLLECTION).doc("active");
   docRef.get().then((doc) => {
-      if (doc.exists) {
-          console.log("Got active roast data:", doc.data());
-          roastLogger.loadRoastData(doc.data());
-      } else {
-          // doc.data() will be undefined in this case
-          console.log("No active roast found");
-      }
+    if (doc.exists) {
+      console.log("Got active roast data:", doc.data());
+      roastLogger.loadRoastData(doc.data());
+    } else {
+      // doc.data() will be undefined in this case
+      console.log("No active roast found");
+    }
   }).catch((error) => {
-      showError(`Failed to load state from database! | ${error}`);
+    showError(`Failed to load state from database! | ${error}`);
   });
+}
+
+let isSpeaking = false;
+const voice = getVoice();
+
+function getVoice() {
+  const voices = window.speechSynthesis.getVoices();
+
+  // Select a specific voice by name (example: "Google US English")
+  const voice = voices.find(v => v.name === "Samantha");
+  if (voice) {
+    return voice;
+  } else {
+    // default to first voice
+    return voices[0];
+  }
+}
+
+function speakWithVoice(text) {
+  if (!isSpeaking) {
+    isSpeaking = true;
+    try {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.voice = voice;
+      utterance.volume = 1; // Full volume
+      utterance.rate = 1;   // Normal rate
+      utterance.pitch = 1;  // Normal pitch
+      speechSynthesis.speak(utterance);
+    } finally {
+      isSpeaking = false;
+    }
+  }
 }
 
 function showError(msg) {
