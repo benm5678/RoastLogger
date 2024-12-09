@@ -7,17 +7,28 @@
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <!-- Firebase Auth -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <!-- FirebaseUI -->
+  <script src="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
 </head>
 <body>
   <div class="container">
+    <!-- Container for FirebaseUI -->
+    <div id="firebaseui-auth-container"></div>
     <div class="header">
-      <h1>Roast Logger</h1>
+      <h1>Roast Logger<span id="headerMessage"></span></h1>
       <div class="buttons">
         <button id="connectButton" class="button">Connect</button>
         <button id="startButton" class="button" disabled>Start Logging</button>
         <button id="stopButton" class="button" disabled>Stop Logging</button>
         <button id="chargeButton" class="button" disabled>Charge</button>
         <button id="dropButton" class="button" disabled>Drop</button>
+        <button id="saveButton" class="button">Save</button>
+        <button id="signInButton" class="button">Login</button>
       </div>
     </div>
     <div class="main-content">
@@ -44,6 +55,59 @@
       <canvas id="chart"></canvas>
     </div>
   </div>
+
+  <script>
+    //var firebase = require('firebase');
+    //var firebaseui = require('firebaseui');
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBFLe-OTOXqHOJMPrbmbQvdSA3Wu0DVA8I",
+        authDomain: "roast-logger-e28ea.firebaseapp.com",
+        projectId: "roast-logger-e28ea",
+        storageBucket: "roast-logger-e28ea.firebasestorage.app",
+        messagingSenderId: "859396507155",
+        appId: "1:859396507155:web:aacc61afaa12dfa61061e6"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    
+    // Auth - set persistance
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(() => {
+        // Existing and future Auth states are now persisted in the current
+        // session only. Closing the window would clear any existing state even
+        // if a user forgets to sign out.
+        // ...
+        // New sign-in will be persisted with session persistence.
+        //return firebase.auth().signInWithEmailAndPassword(email, password);
+        // FirebaseUI Config
+        const ui = new firebaseui.auth.AuthUI(auth);
+        const uiConfig = {
+            signInOptions: [
+                firebase.auth.EmailAuthProvider.PROVIDER_ID // Enable Email/Password authentication
+            ],
+            signInSuccessUrl: location.href, // Redirect URL after successful login
+            callbacks: {
+              signInSuccessWithAuthResult: function(authResult) {
+                document.getElementById("headerMessage").innerText = " - Hi, " + auth.currentUser.displayName;
+                // Do not automatically redirect.
+                return false;
+              },
+            }
+        };
+
+        // Start FirebaseUI
+        ui.start('#firebaseui-auth-container', uiConfig);
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        var errorCode = error.code;
+        var errorMessage = error.message;
+      });
+  </script>
   <script src="index.js"></script>
 </body>
 </html>

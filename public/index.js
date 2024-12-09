@@ -341,6 +341,8 @@ class BluetoothRoastLogger {
       document.getElementById("duration").textContent = "N/A";
     }
     this.updateButtonStates();
+
+    this.saveRoastFile();
   }
 
 
@@ -391,6 +393,39 @@ class BluetoothRoastLogger {
     this.chart.update();
   }
 
+  saveRoastFile() {
+    const fileName = "roast_log.rl";
+    const fileData = "boo";
+
+    const blob = new Blob([fileData], { type: "application/octet-stream" });
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+        // For iOS, create a data URL and open it in a new tab
+        const reader = new FileReader();
+        reader.onloadend = function () {
+            const dataUrl = reader.result;
+
+            // Open in a new tab or allow manual saving
+            const popup = window.open(dataUrl, "_blank");
+            if (!popup) {
+                alert("Please enable pop-ups to download the file.");
+            }
+        };
+        reader.readAsDataURL(blob);
+    } else {
+        // For other browsers, use the download attribute
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName; // Default name if none provided
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+  }
+
 }
 
 const isFileProtocol = window.location.protocol === "file:";
@@ -417,4 +452,8 @@ document.getElementById("chargeButton").addEventListener("click", () => {
 
 document.getElementById("dropButton").addEventListener("click", () => {
   roastLogger.drop();
+});
+
+document.getElementById("saveButton").addEventListener("click", () => {
+  roastLogger.saveRoastFile();
 });
