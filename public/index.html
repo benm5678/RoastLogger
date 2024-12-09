@@ -16,11 +16,14 @@
   <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.0.1/firebase-ui-auth.css" />
 </head>
 <body>
-  <div class="container">
-    <!-- Container for FirebaseUI -->
-    <div id="firebaseui-auth-container"></div>
+  <div class="container">    
     <div class="header">
       <h1>Roast Logger<span id="headerMessage"></span></h1>
+    </div>
+    <!-- Container for FirebaseUI -->
+    <div id="firebaseui-auth-container"></div>
+    <!-- Container for App Content -->
+    <div id="main-content" class="main-content">
       <div class="buttons">
         <button id="connectButton" class="button">Connect</button>
         <button id="startButton" class="button" disabled>Start Logging</button>
@@ -28,10 +31,7 @@
         <button id="chargeButton" class="button" disabled>Charge</button>
         <button id="dropButton" class="button" disabled>Drop</button>
         <button id="saveButton" class="button">Save</button>
-        <button id="signInButton" class="button">Login</button>
       </div>
-    </div>
-    <div class="main-content">
       <div class="logs" id="logContainer">
         <h3>Roast Data:</h3>
         <pre id="logData">No data yet...</pre>
@@ -73,17 +73,19 @@
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    
-    // Auth - set persistance
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(() => {
-        // Existing and future Auth states are now persisted in the current
-        // session only. Closing the window would clear any existing state even
-        // if a user forgets to sign out.
-        // ...
-        // New sign-in will be persisted with session persistence.
-        //return firebase.auth().signInWithEmailAndPassword(email, password);
-        // FirebaseUI Config
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        console.log("User is signed in:", user);
+        document.getElementById("headerMessage").innerText = " - Hi, " + user.displayName;
+        // Show main content
+        document.getElementById('main-content').style.display = 'block';
+      } else {
+        console.log("No user is signed in.");
+        // Hide main content
+        document.getElementById('main-content').style.display = 'none';
+
+        // Show FirebaseUI Auth
         const ui = new firebaseui.auth.AuthUI(auth);
         const uiConfig = {
             signInOptions: [
@@ -92,21 +94,21 @@
             signInSuccessUrl: location.href, // Redirect URL after successful login
             callbacks: {
               signInSuccessWithAuthResult: function(authResult) {
-                document.getElementById("headerMessage").innerText = " - Hi, " + auth.currentUser.displayName;
+                //document.getElementById("headerMessage").innerText = " - Hi, " + auth.currentUser.displayName;
                 // Do not automatically redirect.
                 return false;
               },
+              uiShown: function() {
+                // Hide app content
+                document.getElementById('main-content').style.display = 'none';
+              }
             }
         };
 
         // Start FirebaseUI
         ui.start('#firebaseui-auth-container', uiConfig);
-      })
-      .catch((error) => {
-        // Handle Errors here.
-        var errorCode = error.code;
-        var errorMessage = error.message;
-      });
+      }
+    });
   </script>
   <script src="index.js"></script>
 </body>
