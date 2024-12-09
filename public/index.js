@@ -309,6 +309,7 @@ class BluetoothRoastLogger {
 
     // Update duration every second
     this.enableDurationCounter();
+    this.saveRoastData();
   }
 
   stopDurationCounter() {
@@ -342,7 +343,7 @@ class BluetoothRoastLogger {
     }
     this.updateButtonStates();
 
-    this.saveRoastFile();
+    this.saveRoastData();
   }
 
 
@@ -393,6 +394,27 @@ class BluetoothRoastLogger {
     this.chart.update();
   }
 
+  saveRoastData() {
+    const db = firebase.firestore();
+    db.collection(DB_COLLECTION).doc("active").set({
+      roastStartTime: this.roastStartTime,
+      logData: this.logData,
+    })
+    .then(() => {
+      console.log("Updated active roast data in db!");
+    })
+    .catch((error) => {
+      showError(`Failed to load state from database! | ${error}`);
+    });
+  }
+
+  loadRoastData(roastData) {
+    this.roastStartTime = roastData.roastStartTime;
+    this.logData = roastData.logData;
+    this.updateButtonStates();
+    this.updateChart();
+  }
+
   saveRoastFile() {
     const fileName = "roast_log.rl";
     const fileData = "boo";
@@ -428,8 +450,16 @@ class BluetoothRoastLogger {
 
 }
 
+const DB_COLLECTION = "roast_logs";
+
+// Check if the URL contains the debug parameter
+const urlParams = new URLSearchParams(window.location.search);
+const debugParam = urlParams.get("debug") === "true";
 const isFileProtocol = window.location.protocol === "file:";
-const roastLogger = new BluetoothRoastLogger(debug = isFileProtocol);
+const debug = debugParam || isFileProtocol;
+
+// Initialize the BluetoothRoastLogger
+const roastLogger = new BluetoothRoastLogger(debug);
 
 // Connect Button Logic
 document.getElementById("connectButton").addEventListener("click", async () => {
@@ -460,10 +490,11 @@ document.getElementById("saveButton").addEventListener("click", () => {
 
 function initApp() {
   const db = firebase.firestore();
-  var docRef = db.collection("roast_logs").doc("active");
+  var docRef = db.collection(DB_COLLECTION).doc("active");
   docRef.get().then((doc) => {
       if (doc.exists) {
           console.log("Got active roast data:", doc.data());
+          roastLogger.loadRoastData(doc.data());
       } else {
           // doc.data() will be undefined in this case
           console.log("No active roast found");
