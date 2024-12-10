@@ -88,8 +88,10 @@ class BluetoothRoastLogger {
     document.getElementById('coffeeName').disabled = this.isRoasting();
     document.getElementById('coffeeAmount').disabled = this.isRoasting();
     document.getElementById('saveButton').disabled = !this.isRoasting();
-    document.getElementById('loadButton').disabled = this.isRoasting();
-    document.getElementById("roastStartTime").textContent = this.roastStartTime ? this.roastStartTime.toLocaleTimeString() : "-";
+    document.getElementById('loadButton').disabled = this.isLogging() || this.isRoasting();
+    document.getElementById("roastStartTime").textContent = this.roastStartTime ?
+      this.roastStartTime.toLocaleTimeString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+      : "-";
   }
 
   getCoffeeName() {
@@ -98,6 +100,10 @@ class BluetoothRoastLogger {
 
   setCoffeeName(name) {
     document.getElementById("coffeeName").value = name;
+  }
+
+  setCoffeeBatchNum(batchNum) {
+    document.getElementById("coffeeBatchNum").value = batchNum;
   }
 
   getCoffeeAmount() {
@@ -218,8 +224,11 @@ class BluetoothRoastLogger {
         return;
 
       this.resetParams();
+      getNextBatchNum((nextBatchNum) => {
+        this.setCoffeeBatchNum(nextBatchNum);
+      });
     }
-    
+
     if (this.debug) {
       console.log("Debug mode: Generating fake data...");
       this.enableLogging = true;
@@ -327,12 +336,18 @@ class BluetoothRoastLogger {
     this.updateChart();
 
     // Alert
-    if (document.getElementById('enableAlarmCheckbox').checked) {
-      const maxTemp = parseInt(document.getElementById('maxTempInput').value, 10);
-      if (bt > maxTemp) {
-        speakWithVoice(`Temp is ${bt}`);
-      }
+    if (this.isInAlarmState()) {
+      speakWithVoice(`Temp is ${bt}`);
     }
+  }
+
+  isInAlarmState() {
+    if (!document.getElementById('enableAlarmCheckbox').checked)
+      return false;
+    const maxTemp = parseInt(document.getElementById('maxTempInput').value, 10);
+    // return last bt recorded in logData
+    const lastBT = this.logData.at(-1).BT;
+    return lastBT > maxTemp;
   }
 
   charge() {
@@ -475,6 +490,7 @@ class BluetoothRoastLogger {
     } else {
       this.logData = [];
     }
+    this.setCoffeeBatchNum(roastData.coffeeBatchNum ?? '0');
     this.setCoffeeName(roastData.coffeeName ?? '');
     this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
     this.updateUIState();
@@ -570,13 +586,14 @@ function loadRoastNames() {
 
   collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
     .orderBy('roastStartTime', 'desc')
+    .limit(20)
     .get()
     .then((querySnapshot) => {
       const roastNamesList = document.getElementById('roastNamesList');
       roastNamesList.innerHTML = ''; // Clear existing list
 
       querySnapshot.forEach((doc) => {
-        const roastDate = doc.data().roastStartTime.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+        const roastDate = doc.data().roastStartTime.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         const coffeeName = doc.data().coffeeName;
         const roastButton = document.createElement('button');
         roastButton.className = 'roast-name-button';
@@ -593,6 +610,37 @@ function loadRoastNames() {
     });
 }
 
+function loadLastRoast(processRoastDataCallback) {
+  const db = firebase.firestore();
+  const collectionRef = db.collection(DB_COLLECTION);
+
+  collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
+    .orderBy('roastStartTime', 'desc')
+    .limit(1)
+    .get()
+    .then((querySnapshot) => {
+      if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0]; // Access the first (and only) document
+        console.log("Last Record:", doc.id, "=>", doc.data());
+        processRoastDataCallback(doc.data());
+      } else {
+        console.log("No records found.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error loading last roast: ", error);
+    });
+}
+
+function getNextBatchNum(processNextBatchNumCallback) {
+  loadLastRoast((lastRoast) => {
+    if (!lastRoast)
+      processNextBatchNumCallback(1);
+    else
+      processNextBatchNumCallback(parseInt(lastRoast.coffeeBatchNum) + 1);
+  });
+}
+
 function loadRoastDetails(doc) {
   // Display details of the selected roast (doc.data())
   console.log("Roast details:", doc.data());
@@ -606,12 +654,16 @@ function speakWithVoice(text) {
     isSpeaking = true;
     try {
       const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => {
+        console.log("Finished speaking!");
+        isSpeaking = false;
+      };
       utterance.voice = voice;
       utterance.volume = 1; // Full volume
       utterance.rate = 1;   // Normal rate
       utterance.pitch = 1;  // Normal pitch
       speechSynthesis.speak(utterance);
-    } finally {
+    } catch {
       isSpeaking = false;
     }
   }

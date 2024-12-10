@@ -49,6 +49,10 @@
       <div class="section coffee-section">
         <div class="coffee-input-container">
           <div class="coffee-input">
+            <label for="coffeeName">Batch #:</label>
+            <input type="number" id="coffeeBatchNum" name="coffeeBatchNum" min="1" max="150000" step="1" value="1">
+          </div>
+          <div class="coffee-input">
             <label for="coffeeName">Coffee Name:</label>
             <input type="text" id="coffeeName" name="coffeeName" placeholder="Enter coffee name">
           </div>
@@ -63,7 +67,7 @@
       <div class="section status">
         <div class="status-grid">
           <div class="status-item">
-            <strong>Roast Start Time:</strong> <span id="roastStartTime">-</span>
+            <strong>Start Time:</strong> <span id="roastStartTime">-</span>
           </div>
           <div class="status-item">
             <strong>BT:</strong> <span id="BT">-</span>
