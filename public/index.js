@@ -90,8 +90,8 @@ class BluetoothRoastLogger {
     document.getElementById('coffeeAmount').disabled = this.isRoasting();
     document.getElementById('saveButton').disabled = !this.isRoasting();
     document.getElementById('loadButton').disabled = this.isLogging() || this.isRoasting();
-    document.getElementById('pinButton').style.display = (this.isRoasting() || !this.loadedRoastData || !this.loadedRoastData.roastEndTime || this.roastDataToMatch) ? 'none' : 'inline-block';
-    document.getElementById('unpinButton').style.display = this.roastDataToMatch ? 'inline-block' : 'none';
+    document.getElementById('pinButton').style.display = (this.isLogging() || this.isRoasting() || !this.loadedRoastData || !this.loadedRoastData.roastEndTime || this.roastDataToMatch) ? 'none' : 'inline-block';
+    document.getElementById('unpinButton').style.display = (this.isLogging() || !this.roastDataToMatch) ? 'none' : 'inline-block';
     document.getElementById("roastStartTime").textContent = this.roastStartTime ?
       this.roastStartTime.toLocaleTimeString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
       : "-";
