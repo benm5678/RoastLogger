@@ -441,13 +441,19 @@ class BluetoothRoastLogger {
 
     // Load data to match
     if (this.roastDataToMatch) {
-      const logDataToMatch = this.roastDataToMatch.logData;
-      const earliestTimeToMatch = (this.roastStartTime ? this.roastDataToMatch.roastStartTime : null) || Math.min(...logDataToMatch.map(entry => entry.logTime));
-      const filteredDataToMatch = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
-      const timeDataToMatch = filteredDataToMatch.map(entry => {
+      const hasCache = this.roastDataToMatchCache && this.roastDataToMatchCache.coffeeBatchNum === this.roastDataToMatch.coffeeBatchNum;
+      if(!hasCache) this.roastDataToMatchCache = { coffeeBatchNum: this.roastDataToMatch.coffeeBatchNum };
+      const logDataToMatch = this.roastDataToMatch.logData.filter(entry => entry.logTime > this.roastDataToMatch.roastStartTime - 300);
+      let earliestTimeToMatch = this.roastStartTime ? this.roastDataToMatch.roastStartTime : null;
+      if(!earliestTimeToMatch)
+        earliestTimeToMatch = hasCache && this.roastDataToMatchCache.earliestTime ? this.roastDataToMatchCache.earliestTime : (this.roastDataToMatchCache.earliestTime = Math.min(...logDataToMatch.map(entry => entry.logTime)));
+      const didEarliestTimeChange = this.roastDataToMatchCache.previousEarliestTime !== earliestTimeToMatch;
+      const filteredDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.filteredData : this.roastDataToMatchCache.filteredData = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
+      const timeDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.timeData : (this.roastDataToMatchCache.timeData = filteredDataToMatch.map(entry => {
         const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000);
         return offsetTime.toISOString().substr(11, 8); // Formats as HH:MM:SS
-      });
+      }));
+      this.roastDataToMatchCache.previousEarliestTime = earliestTimeToMatch;
 
       // Merge timeDataToMatch into timeData
       this.timeData = Array.from(new Set([...this.timeData, ...timeDataToMatch]))
@@ -562,12 +568,6 @@ class BluetoothRoastLogger {
   }
 
   loadRoastData(roastData) {
-    this.loadedRoastData = roastData;
-    this.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
-    this.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
-    if (this.roastEndTime) {
-      this.updateRoastDuration(this.roastEndTime - this.roastStartTime);
-    }
     // Convert logData into Date objects
     if (roastData.logData) {
       this.logData = roastData.logData.map(logEntry => {
@@ -579,6 +579,15 @@ class BluetoothRoastLogger {
     } else {
       this.logData = [];
     }
+
+    // Load info
+    this.loadedRoastData = roastData;
+    this.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
+    this.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
+    if (this.roastEndTime) {
+      this.updateRoastDuration(this.roastEndTime - this.roastStartTime);
+    }
+    
     this.setCoffeeBatchNum(roastData.coffeeBatchNum ?? '0');
     this.setCoffeeName(roastData.coffeeName ?? '');
     this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
