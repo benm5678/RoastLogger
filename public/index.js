@@ -54,6 +54,7 @@ class BluetoothRoastLogger {
         ]
       },
       options: {
+        animation: false,
         scales: {
           x: {
             ticks: {
@@ -89,6 +90,8 @@ class BluetoothRoastLogger {
     document.getElementById('coffeeAmount').disabled = this.isRoasting();
     document.getElementById('saveButton').disabled = !this.isRoasting();
     document.getElementById('loadButton').disabled = this.isLogging() || this.isRoasting();
+    document.getElementById('pinButton').style.display = (this.isRoasting() || !this.loadedRoastData || !this.loadedRoastData.roastEndTime || this.roastDataToMatch) ? 'none' : 'inline-block';
+    document.getElementById('unpinButton').style.display = this.roastDataToMatch ? 'inline-block' : 'none';
     document.getElementById("roastStartTime").textContent = this.roastStartTime ?
       this.roastStartTime.toLocaleTimeString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
       : "-";
@@ -428,7 +431,6 @@ class BluetoothRoastLogger {
   updateChart() {
     // Determine the earliest logTime (either filtered data or entire data)
     const earliestTime = this.roastStartTime || Math.min(...this.logData.map(entry => entry.logTime));
-
     const filteredData = this.logData.filter(entry => entry.logTime >= earliestTime);
 
     // Calculate the time difference from the earliest logTime
@@ -437,6 +439,78 @@ class BluetoothRoastLogger {
       return offsetTime.toISOString().substr(11, 8); // Formats as HH:MM:SS
     });
 
+    // Load data to match
+    if (this.roastDataToMatch) {
+      const logDataToMatch = this.roastDataToMatch.logData;
+      const earliestTimeToMatch = (this.roastStartTime ? this.roastDataToMatch.roastStartTime : null) || Math.min(...logDataToMatch.map(entry => entry.logTime));
+      const filteredDataToMatch = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
+      const timeDataToMatch = filteredDataToMatch.map(entry => {
+        const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000);
+        return offsetTime.toISOString().substr(11, 8); // Formats as HH:MM:SS
+      });
+
+      // Merge timeDataToMatch into timeData
+      this.timeData = Array.from(new Set([...this.timeData, ...timeDataToMatch]))
+        .map(time => {
+          const [hours, minutes, seconds] = time.split(':').map(Number);
+          if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+            //console.error('Invalid time format:', time);
+            return NaN;
+          }
+          return (hours * 3600) + (minutes * 60) + seconds; // Convert to total seconds
+        })
+        .filter(totalSeconds => !isNaN(totalSeconds)) // Filter out NaN values
+        .sort((a, b) => a - b)
+        .map(totalSeconds => {
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        });
+
+      // Create matchedBT and matchedET datasets
+      const matchedBT = this.timeData.map(time => {
+        const match = filteredDataToMatch.find(entry => {
+          const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000).toISOString().substr(11, 8);
+          return offsetTime === time;
+        });
+        return match ? match.BT : null;
+      });
+
+      const matchedET = this.timeData.map(time => {
+        const match = filteredDataToMatch.find(entry => {
+          const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000).toISOString().substr(11, 8);
+          return offsetTime === time;
+        });
+        return match ? match.MET : null;
+      });
+
+      // Update chart datasets
+      this.chart.data.datasets[2] = {
+        label: 'Target BT',
+        data: matchedBT,
+        borderColor: 'rgba(0, 255, 0, 0.5)', // Light green
+        borderWidth: 1,
+        borderDash: [5, 5], // Dashed line
+        fill: false, // Ensure the line is not filled
+        pointRadius: 0 // Hide points
+      };
+
+      this.chart.data.datasets[3] = {
+        label: 'Target ET',
+        data: matchedET,
+        borderColor: 'rgba(255, 0, 0, 0.5)', // Light red
+        borderWidth: 1,
+        borderDash: [5, 5], // Dashed line
+        fill: false, // Ensure the line is not filled
+        pointRadius: 0 // Hide points
+      };
+    } else {
+      // No target roast, remove 2, 3 datasets
+      this.chart.data.datasets.splice(2, 2);
+
+    }
+
     this.btData = filteredData.map(entry => entry.BT);
     this.metData = filteredData.map(entry => entry.MET);
 
@@ -444,6 +518,20 @@ class BluetoothRoastLogger {
     this.chart.data.datasets[0].data = this.btData;
     this.chart.data.datasets[1].data = this.metData;
     this.chart.update();
+  }
+
+  targetRoastData(target = true) {
+    if (this.loadedRoastData && target) {
+      this.roastDataToMatch = this.loadedRoastData;
+      this.updateChart();
+      roastLogger.updateUIState();
+    } else {
+      if (this.roastDataToMatch && !target) {
+        this.roastDataToMatch = null;
+        this.updateChart();
+        roastLogger.updateUIState();
+      }
+    }
   }
 
   saveRoastData() {
@@ -474,6 +562,7 @@ class BluetoothRoastLogger {
   }
 
   loadRoastData(roastData) {
+    this.loadedRoastData = roastData;
     this.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
     this.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
     if (this.roastEndTime) {
@@ -530,6 +619,14 @@ document.getElementById("saveButton").addEventListener("click", () => {
 });
 
 document.getElementById('loadButton').addEventListener('click', loadRoastNames);
+
+document.getElementById("pinButton").addEventListener("click", () => {
+  roastLogger.targetRoastData();
+});
+
+document.getElementById("unpinButton").addEventListener("click", () => {
+  roastLogger.targetRoastData(false);
+});
 
 // Close popup
 document.getElementById('closeRoastSelectionPopup').addEventListener('click', () => {
