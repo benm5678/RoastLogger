@@ -75,14 +75,21 @@ class BluetoothRoastLogger {
 
   }
 
-  updateButtonStates() {
+  isRoasting() {
+    return this.isLogging() && this.roastStartTime;
+  }
+
+  updateUIState() {
     document.getElementById("connectButton").disabled = this.connected;
     document.getElementById("startButton").disabled = !this.connected || this.isLogging();
     document.getElementById("stopButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime;
     document.getElementById("chargeButton").disabled = !this.connected || !this.isLogging() || this.roastStartTime || !this.getCoffeeName();
     document.getElementById("dropButton").disabled = !this.connected || !this.isLogging() || !this.roastStartTime || this.roastEndTime;
-    document.getElementById('coffeeName').disabled = this.isLogging() && this.roastStartTime;
-    document.getElementById('coffeeAmount').disabled = this.isLogging() && this.roastStartTime;
+    document.getElementById('coffeeName').disabled = this.isRoasting();
+    document.getElementById('coffeeAmount').disabled = this.isRoasting();
+    document.getElementById('saveButton').disabled = !this.isRoasting();
+    document.getElementById('loadButton').disabled = this.isRoasting();
+    document.getElementById("roastStartTime").textContent = this.roastStartTime ? this.roastStartTime.toLocaleTimeString() : "-";
   }
 
   getCoffeeName() {
@@ -101,11 +108,19 @@ class BluetoothRoastLogger {
     document.getElementById("coffeeAmount").value = amount;
   }
 
+  onConnected() {
+    if (this.roastStartTime && !this.roastEndTime) {
+      // Resume active roast logging
+      this.startLogging(true);
+    }
+  }
+
   async connect() {
     if (this.debug) {
       console.log("Debug mode enabled: Skipping Bluetooth connection");
       this.connected = true;
-      this.updateButtonStates();
+      this.updateUIState();
+      this.onConnected();
       return true;
     }
 
@@ -125,12 +140,13 @@ class BluetoothRoastLogger {
 
 
       this.connected = true;
-      this.updateButtonStates(); // Enable buttons after successful connection
+      this.updateUIState(); // Enable buttons after successful connection
+      this.onConnected();
       return true;
     } catch (error) {
       console.error("Connection failed:", error);
       this.connected = false;
-      this.updateButtonStates(); // Keep buttons disabled on failure
+      this.updateUIState(); // Keep buttons disabled on failure
       return false;
     }
   }
@@ -161,7 +177,7 @@ class BluetoothRoastLogger {
   onDisconnected(event) {
     console.warn("Device disconnected:", event.target.name);
     this.connected = false;
-    this.updateButtonStates();
+    this.updateUIState();
 
     // Optional: Automatically try to reconnect after a delay
     setTimeout(async () => {
@@ -175,7 +191,7 @@ class BluetoothRoastLogger {
         this.connectServiceNotifications();
         console.log(`Reconnected to ${this.device.name}`);
         this.connected = true;
-        this.updateButtonStates();
+        this.updateUIState();
       } catch (reconnectError) {
         console.error("Reconnection failed:", reconnectError);
       }
@@ -193,17 +209,20 @@ class BluetoothRoastLogger {
   resetParams() {
     this.roastStartTime = null;
     this.roastEndTime = null;
+    this.logData = [];
   }
 
-  startLogging() {
-    if (this.roastStartTime && !confirm("You sure you want to clear collected data?"))
-      return;
+  startLogging(resume) {
+    if (!resume) {
+      if (this.roastStartTime && !confirm("You sure you want to clear collected data?"))
+        return;
 
-    this.resetParams();
+      this.resetParams();
+    }
+    
     if (this.debug) {
       console.log("Debug mode: Generating fake data...");
       this.enableLogging = true;
-      this.logData = [];
       this.logStartTime = new Date(); // Set log start time
       this.noSleep.enable();
 
@@ -222,7 +241,6 @@ class BluetoothRoastLogger {
       }
       console.log("Starting logging...");
       this.enableLogging = true;
-      this.logData = [];
       this.logStartTime = new Date(); // Set log start time
       this.noSleep.enable();
 
@@ -241,7 +259,7 @@ class BluetoothRoastLogger {
       }, 1000); // Send the command every second
     }
 
-    this.updateButtonStates();
+    this.updateUIState();
   }
 
 
@@ -250,7 +268,7 @@ class BluetoothRoastLogger {
     clearInterval(this.loggingInterval);
     this.enableLogging = false;
     this.stopDurationCounter();
-    this.updateButtonStates();
+    this.updateUIState();
     console.log("Logging stopped");
   }
 
@@ -302,7 +320,6 @@ class BluetoothRoastLogger {
     this.logData.push({ logTime, BT: bt, MET: et });
 
     // Update UI
-    document.getElementById("roastStartTime").textContent = this.roastStartTime ? this.roastStartTime.toLocaleTimeString() : "-";
     document.getElementById("BT").textContent = bt;
     document.getElementById("ET").textContent = et;
 
@@ -323,7 +340,7 @@ class BluetoothRoastLogger {
     this.roastStartTime = this.getLatestLogTime();
     this.updateChart();
     this.updateRoastDuration(); // Update roast duration when roast starts
-    this.updateButtonStates();
+    this.updateUIState();
 
     // Update duration every second
     this.enableDurationCounter();
@@ -359,26 +376,28 @@ class BluetoothRoastLogger {
     } else {
       document.getElementById("duration").textContent = "-";
     }
-    this.updateButtonStates();
+    this.updateUIState();
 
     this.saveRoastData();
   }
 
 
 
-  updateRoastDuration() {
+  updateRoastDuration(manualDuration) {
     const now = new Date();
-    let duration;
+    let duration = manualDuration || null;
 
-    if (this.roastStartTime) {
-      // Duration since roast started
-      duration = now - this.roastStartTime;
-    } else if (this.logStartTime) {
-      // Duration since logging started
-      duration = now - this.logStartTime;
-    } else {
-      document.getElementById("duration").textContent = "-";
-      return;
+    if (!manualDuration) {
+      if (this.roastStartTime) {
+        // Duration since roast started
+        duration = now - this.roastStartTime;
+      } else if (this.logStartTime) {
+        // Duration since logging started
+        duration = now - this.logStartTime;
+      } else {
+        document.getElementById("duration").textContent = "-";
+        return;
+      }
     }
 
     const minutes = Math.floor(duration / 60000);
@@ -412,30 +431,6 @@ class BluetoothRoastLogger {
     this.chart.update();
   }
 
-  loadRecentRoasts() {
-    const db = firebase.firestore();
-    const collectionRef = db.collection(DB_COLLECTION);
-
-    // Query for documents that start with "roast_"
-    collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
-      .orderBy(firebase.firestore.FieldPath.documentId(), 'asc')
-      .limit(10)
-      .get()
-      .then((querySnapshot) => {
-        const roasts = [];
-        querySnapshot.forEach((doc) => {
-          roasts.push({
-            id: doc.id,
-            ...doc.data()
-          });
-        });
-        console.log('Last 10 roasts:', roasts);
-      })
-      .catch((error) => {
-        console.error("Error loading roasts: ", error);
-      });
-  }
-
   saveRoastData() {
     const db = firebase.firestore();
     const docName = this.roastEndTime ? `roast_${this.roastStartTime.toISOString().replace(/[:.-]/g, '')}` : 'active';
@@ -464,18 +459,32 @@ class BluetoothRoastLogger {
   }
 
   loadRoastData(roastData) {
-    this.roastStartTime = roastData.roastStartTime;
-    this.roastEndTime = roastData.roastEndTime;
-    this.logData = roastData.logData;
+    this.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
+    this.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
+    if (this.roastEndTime) {
+      this.updateRoastDuration(this.roastEndTime - this.roastStartTime);
+    }
+    // Convert logData into Date objects
+    if (roastData.logData) {
+      this.logData = roastData.logData.map(logEntry => {
+        return {
+          ...logEntry,
+          logTime: logEntry.logTime.toDate()  // Convert timestamp to Date object
+        };
+      });
+    } else {
+      this.logData = [];
+    }
     this.setCoffeeName(roastData.coffeeName ?? '');
     this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
-    this.updateButtonStates();
+    this.updateUIState();
     this.updateChart();
   }
 }
 
 // Initialize the BluetoothRoastLogger
 const roastLogger = new BluetoothRoastLogger(debug);
+roastLogger.updateUIState();
 
 // Connect Button Logic
 document.getElementById("connectButton").addEventListener("click", async () => {
@@ -504,6 +513,13 @@ document.getElementById("saveButton").addEventListener("click", () => {
   roastLogger.saveRoastData();
 });
 
+document.getElementById('loadButton').addEventListener('click', loadRoastNames);
+
+// Close popup
+document.getElementById('closeRoastSelectionPopup').addEventListener('click', () => {
+  document.getElementById('roastSelectionPopup').style.display = 'none';
+});
+
 document.getElementById('enableAlarmCheckbox').addEventListener('change', function () {
   const maxTempInput = document.getElementById('maxTempInput');
   maxTempInput.style.display = this.checked ? 'inline-block' : 'none';
@@ -513,7 +529,7 @@ document.getElementById('enableAlarmCheckbox').addEventListener('change', functi
 });
 
 document.getElementById('coffeeName').addEventListener('input', function () {
-  roastLogger.updateButtonStates();
+  roastLogger.updateUIState();
 });
 
 function initApp() {
@@ -546,6 +562,43 @@ function getVoice() {
     // default to first voice
     return voices[0];
   }
+}
+
+function loadRoastNames() {
+  const db = firebase.firestore();
+  const collectionRef = db.collection(DB_COLLECTION);
+
+  collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
+    .orderBy('roastStartTime', 'desc')
+    .get()
+    .then((querySnapshot) => {
+      const roastNamesList = document.getElementById('roastNamesList');
+      roastNamesList.innerHTML = ''; // Clear existing list
+
+      querySnapshot.forEach((doc) => {
+        const roastDate = doc.data().roastStartTime.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+        const coffeeName = doc.data().coffeeName;
+        const roastButton = document.createElement('button');
+        roastButton.className = 'roast-name-button';
+        roastButton.setAttribute('data-id', doc.id);
+        roastButton.innerHTML = `${coffeeName} - ${roastDate}`;
+        roastButton.addEventListener('click', () => loadRoastDetails(doc));
+        roastNamesList.appendChild(roastButton);
+      });
+
+      document.getElementById('roastSelectionPopup').style.display = 'block';
+    })
+    .catch((error) => {
+      console.error("Error loading roasts: ", error);
+    });
+}
+
+function loadRoastDetails(doc) {
+  // Display details of the selected roast (doc.data())
+  console.log("Roast details:", doc.data());
+  roastLogger.loadRoastData(doc.data());
+  // Hide popup after selecting
+  document.getElementById('roastSelectionPopup').style.display = 'none';
 }
 
 function speakWithVoice(text) {
