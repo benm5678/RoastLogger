@@ -37,7 +37,7 @@ class BluetoothRoastLogger {
         datasets: [
           {
             label: 'BT',
-            data: this.btData,
+            data: [50, 60, 70], //this.btData,
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             fill: false,
@@ -45,7 +45,7 @@ class BluetoothRoastLogger {
           },
           {
             label: 'MET',
-            data: this.metData,
+            data: [55, 65, 75], //this.metData,
             borderColor: 'rgba(255, 99, 132, 1)',
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
             fill: false,
@@ -57,6 +57,11 @@ class BluetoothRoastLogger {
         animation: false,
         scales: {
           x: {
+            type: 'time', // Use the time scale
+            time: {
+                unit: 'second', // Display in seconds
+                tooltipFormat: 'mm:ss', // Format for tooltips  
+            },
             ticks: {
               autoSkip: true, // Chart.js will handle skipping based on available space
               maxTicksLimit: 10, // Ensure no more than 10 labels appear
@@ -439,8 +444,7 @@ class BluetoothRoastLogger {
 
     // Calculate the time difference from the earliest logTime
     this.timeData = filteredData.map(entry => {
-      const offsetTime = new Date(entry.logTime - earliestTime);
-      return offsetTime.toISOString().substr(11, 8); // Formats as HH:MM:SS
+      return new Date(entry.logTime - earliestTime).getTime();
     });
 
     // Load data to match
@@ -454,43 +458,24 @@ class BluetoothRoastLogger {
       const didEarliestTimeChange = this.roastDataToMatchCache.previousEarliestTime !== earliestTimeToMatch;
       const filteredDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.filteredData : this.roastDataToMatchCache.filteredData = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
       const timeDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.timeData : (this.roastDataToMatchCache.timeData = filteredDataToMatch.map(entry => {
-        const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000);
-        return offsetTime.toISOString().substr(11, 8); // Formats as HH:MM:SS
+        return new Date(entry.logTime - earliestTimeToMatch).getTime();
       }));
       this.roastDataToMatchCache.previousEarliestTime = earliestTimeToMatch;
 
       // Merge timeDataToMatch into timeData
-      this.timeData = Array.from(new Set([...this.timeData, ...timeDataToMatch]))
-        .map(time => {
-          const [hours, minutes, seconds] = time.split(':').map(Number);
-          if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
-            //console.error('Invalid time format:', time);
-            return NaN;
-          }
-          return (hours * 3600) + (minutes * 60) + seconds; // Convert to total seconds
-        })
-        .filter(totalSeconds => !isNaN(totalSeconds)) // Filter out NaN values
-        .sort((a, b) => a - b)
-        .map(totalSeconds => {
-          const hours = Math.floor(totalSeconds / 3600);
-          const minutes = Math.floor((totalSeconds % 3600) / 60);
-          const seconds = totalSeconds % 60;
-          return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        });
+      this.timeData = Array.from(new Set([...this.timeData, ...timeDataToMatch]));
 
       // Create matchedBT and matchedET datasets
-      const matchedBT = this.timeData.map(time => {
+      const matchedBT = this.timeData.map(offsetTime => {
         const match = filteredDataToMatch.find(entry => {
-          const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000).toISOString().substr(11, 8);
-          return offsetTime === time;
+          return  new Date(entry.logTime - earliestTimeToMatch).getTime() === offsetTime;
         });
         return match ? match.BT : null;
       });
 
-      const matchedET = this.timeData.map(time => {
+      const matchedET = this.timeData.map(offsetTime => {
         const match = filteredDataToMatch.find(entry => {
-          const offsetTime = new Date((entry.logTime - earliestTimeToMatch) * 1000).toISOString().substr(11, 8);
-          return offsetTime === time;
+          return new Date(entry.logTime - earliestTimeToMatch).getTime() === offsetTime;
         });
         return match ? match.MET : null;
       });
@@ -573,22 +558,25 @@ class BluetoothRoastLogger {
   }
 
   loadRoastData(roastData) {
-    // Convert logData into Date objects
+    // Convert timestamps back into Date objects
     if (roastData.logData) {
-      this.logData = roastData.logData.map(logEntry => {
+      roastData.logData = roastData.logData.map(logEntry => {
         return {
           ...logEntry,
           logTime: logEntry.logTime.toDate()  // Convert timestamp to Date object
         };
       });
     } else {
-      this.logData = [];
+      roastData.logData = [];
     }
+    roastData.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
+    roastData.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
 
     // Load info
+    this.logData = roastData.logData;
     this.loadedRoastData = roastData;
-    this.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
-    this.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
+    this.roastStartTime = roastData.roastStartTime;
+    this.roastEndTime = roastData.roastEndTime;
     if (this.roastEndTime) {
       this.updateRoastDuration(this.roastEndTime - this.roastStartTime);
     }

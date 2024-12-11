@@ -17,12 +17,12 @@ body {
   flex-direction: column;
   width: 100%;
   max-width: 1200px;
-  height: 100vh;
+  height: 98vh;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  margin: 0px;
+  margin: 2px;
   padding: 5px;
 }
 
