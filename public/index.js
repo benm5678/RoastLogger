@@ -290,6 +290,7 @@ class BluetoothRoastLogger {
     this.enableLogging = false;
     this.stopDurationCounter();
     this.updateUIState();
+    this.noSleep.disable();
     console.log("Logging stopped");
   }
 
@@ -451,10 +452,11 @@ class BluetoothRoastLogger {
     if (this.roastDataToMatch) {
       const hasCache = this.roastDataToMatchCache && this.roastDataToMatchCache.coffeeBatchNum === this.roastDataToMatch.coffeeBatchNum;
       if(!hasCache) this.roastDataToMatchCache = { coffeeBatchNum: this.roastDataToMatch.coffeeBatchNum };
-      const logDataToMatch = this.roastDataToMatch.logData.filter(entry => entry.logTime > this.roastDataToMatch.roastStartTime - 300);
+      const logDataToMatchCutoff = new Date(this.roastDataToMatch.roastStartTime - (5 * 60 * 1000))  // Load 5min pre-roast data
+      const logDataToMatch = this.roastDataToMatch.logData.filter(entry => entry.logTime > logDataToMatchCutoff);
       let earliestTimeToMatch = this.roastStartTime ? this.roastDataToMatch.roastStartTime : null;
       if(!earliestTimeToMatch)
-        earliestTimeToMatch = hasCache && this.roastDataToMatchCache.earliestTime ? this.roastDataToMatchCache.earliestTime : (this.roastDataToMatchCache.earliestTime = Math.min(...logDataToMatch.map(entry => entry.logTime)));
+        earliestTimeToMatch = hasCache && this.roastDataToMatchCache.earliestTime ? this.roastDataToMatchCache.earliestTime : (this.roastDataToMatchCache.earliestTime = new Date(Math.min(...logDataToMatch.map(entry => entry.logTime))));
       const didEarliestTimeChange = this.roastDataToMatchCache.previousEarliestTime !== earliestTimeToMatch;
       const filteredDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.filteredData : this.roastDataToMatchCache.filteredData = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
       const timeDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.timeData : (this.roastDataToMatchCache.timeData = filteredDataToMatch.map(entry => {
