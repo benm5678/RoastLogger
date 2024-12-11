@@ -62,12 +62,17 @@ class BluetoothRoastLogger {
                 }
             },
             ticks: {
+              display: false,
               autoSkip: true,
               maxTicksLimit: 10 // Adjust this value to control the number of ticks shown
             },
           },
           y: {
-            beginAtZero: false
+            beginAtZero: true,
+            min: 0,
+            ticks: {
+              stepSize: 20 // Adjust this value to control the interval between ticks
+            }
           }
         }
       }
@@ -479,6 +484,7 @@ class BluetoothRoastLogger {
     }
 
     // Update bt/et datasets
+    this.chart.options.scales.x.ticks.display = true;
     this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT} });
     this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET} });
     this.chart.update();
