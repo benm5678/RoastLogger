@@ -68,11 +68,7 @@ class BluetoothRoastLogger {
             },
           },
           y: {
-            beginAtZero: true,
-            min: 0,
-            ticks: {
-              stepSize: 20 // Adjust this value to control the interval between ticks
-            }
+            beginAtZero: false,
           }
         }
       }
