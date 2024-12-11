@@ -341,8 +341,8 @@ class BluetoothRoastLogger {
     this.logData.push({ logTime, BT: bt, MET: et });
 
     // Update UI
-    document.getElementById("BT").textContent = bt;
-    document.getElementById("ET").textContent = et;
+    document.getElementById("BT").textContent = parseFloat(bt).toFixed(1);
+    document.getElementById("ET").textContent = parseFloat(et).toFixed(1);
 
     // Update chart with new data
     this.updateChart();
