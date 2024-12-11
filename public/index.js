@@ -1,10 +1,10 @@
-const DB_COLLECTION = "roast_logs";
-
 // Check if the URL contains the debug parameter
 const urlParams = new URLSearchParams(window.location.search);
 const debugParam = urlParams.get("debug") === "true";
 const isFileProtocol = window.location.protocol === "file:";
 const debug = debugParam || isFileProtocol;
+
+const DB_COLLECTION = debug ? "roast_logs_test" : "roast_logs";
 
 class BluetoothRoastLogger {
   constructor(debug = false) {
@@ -98,11 +98,15 @@ class BluetoothRoastLogger {
   }
 
   getCoffeeName() {
-    return document.getElementById("coffeeName").value
+    return document.getElementById("coffeeName").value;
   }
 
   setCoffeeName(name) {
     document.getElementById("coffeeName").value = name;
+  }
+
+  getCoffeeBatchNum() {
+    return document.getElementById("coffeeBatchNum").value;
   }
 
   setCoffeeBatchNum(batchNum) {
@@ -110,7 +114,7 @@ class BluetoothRoastLogger {
   }
 
   getCoffeeAmount() {
-    return document.getElementById("coffeeAmount").value
+    return document.getElementById("coffeeAmount").value;
   }
 
   setCoffeeAmount(amount) {
@@ -547,6 +551,7 @@ class BluetoothRoastLogger {
     db.collection(DB_COLLECTION).doc(docName).set({
       roastStartTime: this.roastStartTime ?? null,
       roastEndTime: this.roastEndTime ?? null,
+      coffeeBatchNum: this.getCoffeeBatchNum(),
       coffeeName: this.getCoffeeName(),
       coffeeAmount: this.getCoffeeAmount(),
       logData: this.logData,
@@ -700,11 +705,12 @@ function loadRoastNames() {
 
       querySnapshot.forEach((doc) => {
         const roastDate = doc.data().roastStartTime.toDate().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        const coffeeBatchNum = doc.data().coffeeBatchNum;
         const coffeeName = doc.data().coffeeName;
         const roastButton = document.createElement('button');
         roastButton.className = 'roast-name-button';
         roastButton.setAttribute('data-id', doc.id);
-        roastButton.innerHTML = `${coffeeName} - ${roastDate}`;
+        roastButton.innerHTML = `#${coffeeBatchNum} - ${coffeeName} - ${roastDate}`;
         roastButton.addEventListener('click', () => loadRoastDetails(doc));
         roastNamesList.appendChild(roastButton);
       });
