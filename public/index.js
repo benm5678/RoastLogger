@@ -17,9 +17,6 @@ class BluetoothRoastLogger {
     this.logData = [];
     this.loggingInterval = null;
     this.peripheralName = "DSD TECH"; // Target device name
-    this.timeData = [];
-    this.btData = [];
-    this.metData = [];
     this.roastStartTime = null;
     this.noSleep = new NoSleep(); // Initialize NoSleep.js
     this.logStartTime = null; // Tracks when logging starts
@@ -33,11 +30,10 @@ class BluetoothRoastLogger {
     this.chart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: this.timeData,
         datasets: [
           {
             label: 'BT',
-            data: [50, 60, 70], //this.btData,
+            data: [],
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             fill: false,
@@ -45,7 +41,7 @@ class BluetoothRoastLogger {
           },
           {
             label: 'MET',
-            data: [55, 65, 75], //this.metData,
+            data: [],
             borderColor: 'rgba(255, 99, 132, 1)',
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
             fill: false,
@@ -61,16 +57,14 @@ class BluetoothRoastLogger {
             time: {
                 unit: 'second', // Display in seconds
                 tooltipFormat: 'mm:ss', // Format for tooltips  
+                displayFormats: {
+                  second: 'mm:ss'
+                }
             },
             ticks: {
-              autoSkip: true, // Chart.js will handle skipping based on available space
-              maxTicksLimit: 10, // Ensure no more than 10 labels appear
-              callback: function (value, index) {
-                // Only show every Nth label explicitly (e.g., every 10th)
-                const skipInterval = Math.ceil(this.chart.data.labels.length / 10); // Dynamically adjust interval
-                return index % skipInterval === 0 ? this.getLabelForValue(value) : '';
-              }
-            }
+              autoSkip: true,
+              maxTicksLimit: 10 // Adjust this value to control the number of ticks shown
+            },
           },
           y: {
             beginAtZero: false
@@ -443,49 +437,25 @@ class BluetoothRoastLogger {
     const earliestTime = this.roastStartTime || Math.min(...this.logData.map(entry => entry.logTime));
     const filteredData = this.logData.filter(entry => entry.logTime >= earliestTime);
 
-    // Calculate the time difference from the earliest logTime
-    this.timeData = filteredData.map(entry => {
-      return new Date(entry.logTime - earliestTime).getTime();
-    });
-
     // Load data to match
     if (this.roastDataToMatch) {
       const hasCache = this.roastDataToMatchCache && this.roastDataToMatchCache.coffeeBatchNum === this.roastDataToMatch.coffeeBatchNum;
       if(!hasCache) this.roastDataToMatchCache = { coffeeBatchNum: this.roastDataToMatch.coffeeBatchNum };
-      const logDataToMatchCutoff = new Date(this.roastDataToMatch.roastStartTime - (5 * 60 * 1000))  // Load 5min pre-roast data
+      const logDataToMatchCutoff = new Date(this.roastDataToMatch.roastStartTime - (15 * 60 * 1000))  // Load 5min pre-roast data
       const logDataToMatch = this.roastDataToMatch.logData.filter(entry => entry.logTime > logDataToMatchCutoff);
       let earliestTimeToMatch = this.roastStartTime ? this.roastDataToMatch.roastStartTime : null;
       if(!earliestTimeToMatch)
         earliestTimeToMatch = hasCache && this.roastDataToMatchCache.earliestTime ? this.roastDataToMatchCache.earliestTime : (this.roastDataToMatchCache.earliestTime = new Date(Math.min(...logDataToMatch.map(entry => entry.logTime))));
       const didEarliestTimeChange = this.roastDataToMatchCache.previousEarliestTime !== earliestTimeToMatch;
       const filteredDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.filteredData : this.roastDataToMatchCache.filteredData = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
-      const timeDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.timeData : (this.roastDataToMatchCache.timeData = filteredDataToMatch.map(entry => {
-        return new Date(entry.logTime - earliestTimeToMatch).getTime();
-      }));
+      
       this.roastDataToMatchCache.previousEarliestTime = earliestTimeToMatch;
 
-      // Merge timeDataToMatch into timeData
-      this.timeData = Array.from(new Set([...this.timeData, ...timeDataToMatch]));
-
-      // Create matchedBT and matchedET datasets
-      const matchedBT = this.timeData.map(offsetTime => {
-        const match = filteredDataToMatch.find(entry => {
-          return  new Date(entry.logTime - earliestTimeToMatch).getTime() === offsetTime;
-        });
-        return match ? match.BT : null;
-      });
-
-      const matchedET = this.timeData.map(offsetTime => {
-        const match = filteredDataToMatch.find(entry => {
-          return new Date(entry.logTime - earliestTimeToMatch).getTime() === offsetTime;
-        });
-        return match ? match.MET : null;
-      });
-
+      
       // Update chart datasets
       this.chart.data.datasets[2] = {
         label: 'Target BT',
-        data: matchedBT,
+        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.BT} }),
         borderColor: 'rgba(0, 255, 0, 0.5)', // Light green
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
@@ -495,7 +465,7 @@ class BluetoothRoastLogger {
 
       this.chart.data.datasets[3] = {
         label: 'Target ET',
-        data: matchedET,
+        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.MET} }),
         borderColor: 'rgba(255, 0, 0, 0.5)', // Light red
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
@@ -508,12 +478,9 @@ class BluetoothRoastLogger {
 
     }
 
-    this.btData = filteredData.map(entry => entry.BT);
-    this.metData = filteredData.map(entry => entry.MET);
-
-    this.chart.data.labels = this.timeData;
-    this.chart.data.datasets[0].data = this.btData;
-    this.chart.data.datasets[1].data = this.metData;
+    // Update bt/et datasets
+    this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT} });
+    this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET} });
     this.chart.update();
   }
 
