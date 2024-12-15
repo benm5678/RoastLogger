@@ -37,7 +37,7 @@ class BluetoothRoastLogger {
             borderColor: 'rgba(75, 192, 192, 1)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
             fill: false,
-            tension: 0.1
+            tension: 0.1,
           },
           {
             label: 'MET',
@@ -45,7 +45,16 @@ class BluetoothRoastLogger {
             borderColor: 'rgba(255, 99, 132, 1)',
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
             fill: false,
-            tension: 0.1
+            tension: 0.1,
+          },
+          {
+            label: 'RoR',
+            data: [],
+            borderColor: 'rgba(55, 99, 132, 1)',
+            backgroundColor: 'rgba(25, 99, 132, 0.2)',
+            fill: false,
+            tension: 0.1,
+            yAxisID: 'y1'
           }
         ]
       },
@@ -55,11 +64,11 @@ class BluetoothRoastLogger {
           x: {
             type: 'time', // Use the time scale
             time: {
-                unit: 'second', // Display in seconds
-                tooltipFormat: 'mm:ss', // Format for tooltips  
-                displayFormats: {
-                  second: 'mm:ss'
-                }
+              unit: 'second', // Display in seconds
+              tooltipFormat: 'mm:ss', // Format for tooltips  
+              displayFormats: {
+                second: 'mm:ss'
+              }
             },
             ticks: {
               display: false,
@@ -68,7 +77,31 @@ class BluetoothRoastLogger {
             },
           },
           y: {
-            beginAtZero: false,
+            type: 'linear',
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Temperature (°F)'
+            },
+            ticks: {
+              beginAtZero: false
+            }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Rate of Rise (°F/min)'
+            },
+            ticks: {
+              beginAtZero: false,
+            },
+            min: -50,
+            max: 50,
+            grid: {
+              drawOnChartArea: false // Prevent gridlines from overlapping
+            }
           }
         }
       }
@@ -441,22 +474,22 @@ class BluetoothRoastLogger {
     // Load data to match
     if (this.roastDataToMatch) {
       const hasCache = this.roastDataToMatchCache && this.roastDataToMatchCache.coffeeBatchNum === this.roastDataToMatch.coffeeBatchNum;
-      if(!hasCache) this.roastDataToMatchCache = { coffeeBatchNum: this.roastDataToMatch.coffeeBatchNum };
+      if (!hasCache) this.roastDataToMatchCache = { coffeeBatchNum: this.roastDataToMatch.coffeeBatchNum };
       const logDataToMatchCutoff = new Date(this.roastDataToMatch.roastStartTime - (15 * 60 * 1000))  // Load 5min pre-roast data
       const logDataToMatch = this.roastDataToMatch.logData.filter(entry => entry.logTime > logDataToMatchCutoff);
       let earliestTimeToMatch = this.roastStartTime ? this.roastDataToMatch.roastStartTime : null;
-      if(!earliestTimeToMatch)
+      if (!earliestTimeToMatch)
         earliestTimeToMatch = hasCache && this.roastDataToMatchCache.earliestTime ? this.roastDataToMatchCache.earliestTime : (this.roastDataToMatchCache.earliestTime = new Date(Math.min(...logDataToMatch.map(entry => entry.logTime))));
       const didEarliestTimeChange = this.roastDataToMatchCache.previousEarliestTime !== earliestTimeToMatch;
       const filteredDataToMatch = hasCache && !didEarliestTimeChange ? this.roastDataToMatchCache.filteredData : this.roastDataToMatchCache.filteredData = logDataToMatch.filter(entry => entry.logTime >= earliestTimeToMatch);
-      
+
       this.roastDataToMatchCache.previousEarliestTime = earliestTimeToMatch;
 
-      
+
       // Update chart datasets
-      this.chart.data.datasets[2] = {
+      this.chart.data.datasets[3] = {
         label: 'Target BT',
-        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.BT} }),
+        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.BT } }),
         borderColor: 'rgba(0, 255, 0, 0.5)', // Light green
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
@@ -464,9 +497,9 @@ class BluetoothRoastLogger {
         pointRadius: 0 // Hide points
       };
 
-      this.chart.data.datasets[3] = {
+      this.chart.data.datasets[4] = {
         label: 'Target ET',
-        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.MET} }),
+        data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.MET } }),
         borderColor: 'rgba(255, 0, 0, 0.5)', // Light red
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
@@ -474,17 +507,93 @@ class BluetoothRoastLogger {
         pointRadius: 0 // Hide points
       };
     } else {
-      // No target roast, remove 2, 3 datasets
-      this.chart.data.datasets.splice(2, 2);
-
+      // No target roast, remove datasets
+      this.chart.data.datasets.splice(3, 2);
     }
 
     // Update bt/et datasets
     this.chart.options.scales.x.ticks.display = true;
-    this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT} });
-    this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET} });
+    this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT } });
+    this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET } });
+    this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
     this.chart.update();
   }
+
+  calculateRateOfRise(data) {
+    if (data.length < 2) return []
+
+    // Step 1: Calculate raw RoR values
+    const roR = []
+    for (let i = 1; i < data.length; i++) {
+      const deltaTime = (data[i].x - data[i - 1].x) / 60000 // Convert ms to minutes
+      const deltaTemp = data[i].y - data[i - 1].y
+
+      // Calculate RoR as °F per minute
+      const rateOfRise = deltaTemp / deltaTime
+      roR.push({ x: data[i].x, y: rateOfRise })
+    }
+
+    // Step 2: Resample data to ensure consistent intervals
+    const resampledRoR = this.resampleData(roR, 1000 * 10) // Resample every 1000 ms
+
+    // Step 3: Detect and remove outliers using interquartile range (IQR)
+    const cleanedRoR = this.removeOutliers(resampledRoR)
+
+    // Step 4: Apply weighted rolling average for smoothing
+    const smoothedRoR = this.applyWeightedRollingAverage(cleanedRoR, 5) // Window size of 5
+
+    return smoothedRoR
+  }
+
+  resampleData(data, intervalMs) {
+    const resampled = []
+    let currentTime = data[0].x
+
+    while (currentTime <= data[data.length - 1].x) {
+      // Find nearest points around the current time
+      const nearestPoints = data.filter(point =>
+        Math.abs(point.x - currentTime) <= intervalMs / 2
+      )
+
+      // Average nearby points
+      const avgValue = nearestPoints.reduce((sum, p) => sum + p.y, 0) / nearestPoints.length || 0
+
+      resampled.push({ x: currentTime, y: avgValue })
+      currentTime += intervalMs
+    }
+
+    return resampled
+  }
+
+  removeOutliers(data) {
+    const values = data.map(point => point.y)
+    const q1 = this.percentile(values, 25)
+    const q3 = this.percentile(values, 75)
+    const iqr = q3 - q1
+    const lowerBound = q1 - 1.5 * iqr
+    const upperBound = q3 + 1.5 * iqr
+
+    return data.filter(point => point.y >= lowerBound && point.y <= upperBound)
+  }
+
+  percentile(data, percentile) {
+    const sorted = [...data].sort((a, b) => a - b)
+    const index = Math.floor(percentile / 100 * sorted.length)
+    return sorted[index]
+  }
+
+  applyWeightedRollingAverage(data, windowSize) {
+    const smoothed = []
+    for (let i = 0; i < data.length; i++) {
+      const window = data.slice(Math.max(0, i - windowSize + 1), i + 1)
+      const weights = window.map((_, idx) => idx + 1) // Linearly increasing weights
+      const weightedAvg = window.reduce((sum, point, idx) => sum + point.y * weights[idx], 0) /
+        weights.reduce((sum, weight) => sum + weight, 0)
+      smoothed.push({ x: data[i].x, y: weightedAvg })
+    }
+    return smoothed
+  }
+
 
   targetRoastData(target = true) {
     if (this.loadedRoastData && target) {
@@ -551,7 +660,7 @@ class BluetoothRoastLogger {
     if (this.roastEndTime) {
       this.updateRoastDuration(this.roastEndTime - this.roastStartTime);
     }
-    
+
     this.setCoffeeBatchNum(roastData.coffeeBatchNum ?? '0');
     this.setCoffeeName(roastData.coffeeName ?? '');
     this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
