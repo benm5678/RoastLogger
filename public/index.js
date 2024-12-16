@@ -379,14 +379,16 @@ class BluetoothRoastLogger {
     this.updateChart();
 
     // Alert
-    if (this.isInAlarmState()) {
-      speakWithVoice(`Temp is ${bt}`);
+    if (document.getElementById('enableAlarmCheckbox').checked) {
+      const maxInterval = 1000 * 30;
+      if (this.isInAlarmState() || !this.lastSpokeTime || (logTime - this.lastSpokeTime) > maxInterval) {
+        speakWithVoice(`Temp is ${bt}`);
+        this.lastSpokeTime = logTime;
+      }
     }
   }
 
   isInAlarmState() {
-    if (!document.getElementById('enableAlarmCheckbox').checked)
-      return false;
     const maxTemp = parseInt(document.getElementById('maxTempInput').value, 10);
     // return last bt recorded in logData
     const lastBT = this.logData.at(-1).BT;
@@ -531,7 +533,7 @@ class BluetoothRoastLogger {
     this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
     this.chart.update();
 
-    
+
     // Update UI
     const lastBT = this.chart.data.datasets[0].data.pop()
     document.getElementById("BT").textContent = lastBT ? lastBT.y.toFixed(1) : '-';
