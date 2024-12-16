@@ -150,8 +150,14 @@ class BluetoothRoastLogger {
     return document.getElementById("coffeeAmount").value;
   }
 
-  setCoffeeAmount(amount) {
+  getCoffeePostAmount() {
+    return document.getElementById("coffeePostAmount").value;
+  }
+
+  setCoffeeAmount(amount, postAmount) {
     document.getElementById("coffeeAmount").value = amount;
+    document.getElementById("coffeePostAmount").value = postAmount;
+    document.getElementById("coffeeWeightLoss").value = postAmount ? (((amount - postAmount) / amount) * 100).toFixed(2) : '-';
   }
 
   onConnected() {
@@ -365,13 +371,13 @@ class BluetoothRoastLogger {
   processData(bt, et) {
     // Log the data
     const logTime = new Date();
-    bt = parseInt(bt)
-    et = parseInt(et)
+    bt = parseFloat(bt)
+    et = parseFloat(et)
     this.logData.push({ logTime, BT: bt, MET: et });
 
     // Update UI
-    document.getElementById("BT").textContent = parseFloat(bt).toFixed(1);
-    document.getElementById("ET").textContent = parseFloat(et).toFixed(1);
+    document.getElementById("BT").textContent = bt.toFixed(1);
+    document.getElementById("ET").textContent = et.toFixed(1);
 
     // Update chart with new data
     this.updateChart();
@@ -619,6 +625,7 @@ class BluetoothRoastLogger {
       coffeeBatchNum: this.getCoffeeBatchNum(),
       coffeeName: this.getCoffeeName(),
       coffeeAmount: this.getCoffeeAmount(),
+      coffeePostAmount: this.getCoffeePostAmount(),
       logData: this.logData,
     }).then(() => {
       console.log(`Saved roast data as '${docName}' in db!`);
@@ -663,7 +670,8 @@ class BluetoothRoastLogger {
 
     this.setCoffeeBatchNum(roastData.coffeeBatchNum ?? '0');
     this.setCoffeeName(roastData.coffeeName ?? '');
-    this.setCoffeeAmount(roastData.coffeeAmount ?? 150);
+    this.setCoffeeAmount(roastData.coffeeAmount ?? 150, roastData.coffeePostAmount ?? "");
+
     this.updateUIState();
     this.updateChart();
   }
