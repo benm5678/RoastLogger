@@ -375,10 +375,6 @@ class BluetoothRoastLogger {
     et = parseFloat(et)
     this.logData.push({ logTime, BT: bt, MET: et });
 
-    // Update UI
-    document.getElementById("BT").textContent = bt.toFixed(1);
-    document.getElementById("ET").textContent = et.toFixed(1);
-
     // Update chart with new data
     this.updateChart();
 
@@ -534,6 +530,15 @@ class BluetoothRoastLogger {
     this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET } });
     this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
     this.chart.update();
+
+    
+    // Update UI
+    const lastBT = this.chart.data.datasets[0].data.pop()
+    document.getElementById("BT").textContent = lastBT ? lastBT.y.toFixed(1) : '-';
+    const lastET = this.chart.data.datasets[1].data.pop()
+    document.getElementById("ET").textContent = lastET ? lastET.y.toFixed(1) : '-';
+    const lastRoR = this.chart.data.datasets[2].data.pop();
+    document.getElementById("RoR").textContent = lastRoR ? lastRoR.y.toFixed(1) : '-';
   }
 
   calculateRateOfRise(data) {
