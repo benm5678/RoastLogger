@@ -512,9 +512,20 @@ class BluetoothRoastLogger {
         fill: false, // Ensure the line is not filled
         pointRadius: 0 // Hide points
       };
+
+      this.chart.data.datasets[4] = {
+        label: 'Target RoR',
+        data: this.calculateRateOfRise(this.chart.data.datasets[3].data),
+        borderColor: 'rgba(55, 0, 0, 0.5)', // Light blue
+        borderWidth: 1,
+        borderDash: [5, 5], // Dashed line
+        fill: false, // Ensure the line is not filled
+        pointRadius: 0, // Hide points
+        yAxisID: 'y1'
+      };
     } else {
       // No target roast, remove datasets
-      this.chart.data.datasets.splice(3, 2);
+      this.chart.data.datasets.splice(3, 3);
     }
 
     // Update bt/et datasets
