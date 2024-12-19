@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roast Logger</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=0.0.9">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -78,13 +78,13 @@
       <div class="section status">
         <div class="status-grid">
           <div class="status-item">
-            <strong>BT:</strong> <span id="BT">-</span>
+            <strong>BT:</strong> <span id="BT" style="color: rgb(212, 20, 61);">-</span>
           </div>
           <div class="status-item">
-            <strong>ET:</strong> <span id="ET">-</span>
+            <strong>ET:</strong> <span id="ET" style="color: rgb(72, 152, 214);">-</span>
           </div>
           <div class="status-item">
-            <strong>RoR (F/min):</strong> <span id="RoR">-</span>
+            <strong>RoR (F/min):</strong> <span id="RoR" style="color: rgb(65, 172, 67);">-</span>
           </div>
           <div class="status-item">
             <strong>Drying:</strong> <span id="dry-time">-</span>
@@ -103,7 +103,6 @@
           </div>
         </div>
       </div>
-
       <canvas id="chart"></canvas>
     </div>
   </div>
@@ -161,6 +160,6 @@
       }
     });
   </script>
-  <script src="index.js?v=0.0.25"></script>
+  <script src="index.js?v=0.0.27"></script>
 </body>
 </html>

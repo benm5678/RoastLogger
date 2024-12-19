@@ -15,15 +15,16 @@ body {
 .container {
   display: flex;
   flex-direction: column;
-  width: 100%;
   max-width: 1200px;
-  height: 100vh;
+  height: 98vh;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   margin: 2px;
   padding: 5px;
+  flex-grow: 1;
+  width: 100vw;
 }
 
 /* Header */
@@ -69,7 +70,6 @@ body {
   border-bottom: 1px solid #ddd;
   padding: 5px;
   box-sizing: border-box;
-  margin-bottom: 15px;
 }
 
 /* Coffee Input Section */
@@ -90,12 +90,10 @@ body {
 /* Canvas */
 canvas {
   flex-grow: 1;
-  width: 100%;
   border: 1px solid #ccc;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   object-fit: contain;
-  min-height: 200px;
 }
 
 .coffee-input {
@@ -203,5 +201,11 @@ canvas {
 
 .close-popup:hover {
   background-color: #ccc;
+}
+
+.RoR {
+  color: orange;
+  border-color: orange;
+  background-color: orange;
 }
 

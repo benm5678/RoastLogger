@@ -34,24 +34,24 @@ class BluetoothRoastLogger {
           {
             label: 'BT',
             data: [],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgba(212, 20, 61, 1)',
+            backgroundColor: 'rgba(212, 20, 61, 0.2)',
             fill: false,
             tension: 0.1,
           },
           {
-            label: 'MET',
+            label: 'ET',
             data: [],
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(72, 152, 214, 1)',
+            backgroundColor: 'rgba(72, 152, 214, 0.2)',
             fill: false,
             tension: 0.1,
           },
           {
             label: 'RoR',
             data: [],
-            borderColor: 'rgba(55, 99, 132, 1)',
-            backgroundColor: 'rgba(25, 99, 132, 0.2)',
+            borderColor: 'rgba(65, 172, 67, 1)',
+            backgroundColor: 'rgba(65, 172, 67, 0.2)',
             fill: false,
             tension: 0.1,
             yAxisID: 'y1'
@@ -532,7 +532,7 @@ class BluetoothRoastLogger {
     this.chart.options.scales.x.ticks.display = true;
     const btData = this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT } });
     const etData = this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET } });
-    const rorData = this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
+    const rorData = this.chart.data.datasets[2].data = this.calculateRateOfRise(btData);
     this.chart.update();
 
 
