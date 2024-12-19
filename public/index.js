@@ -511,7 +511,7 @@ class BluetoothRoastLogger {
         pointRadius: 0 // Hide points
       };
 
-      this.chart.data.datasets[4] = {
+      this.chart.data.datasets[5] = {
         label: 'Target RoR',
         data: this.calculateRateOfRise(this.chart.data.datasets[3].data),
         borderColor: 'rgba(55, 0, 0, 0.5)', // Light blue
@@ -523,7 +523,7 @@ class BluetoothRoastLogger {
       };
     } else {
       // No target roast, remove datasets
-      this.chart.data.datasets.splice(3, 3);
+      this.chart.data.datasets.splice(3);
     }
 
     // Update bt/et datasets
