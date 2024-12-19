@@ -553,22 +553,24 @@ class BluetoothRoastLogger {
     const earliestTime = Math.min(...dataset.map(entry => entry.x));
     const totalRoastTime = (Math.max(...dataset.map(entry => entry.x)) - earliestTime) / 1000; // Total roast time in seconds
 
-    // Process data to find stage times
-    for (let i = 0; i < dataset.length; i++) {
-      const entry = dataset[i];
-      const timeElapsed = (entry.x - earliestTime) / 1000; // Convert to seconds
+    // Process data to find stage times [skip if we're logging and not roasting yet]
+    if (!(this.isLogging && !this.isRoasting)) {
+      for (let i = 0; i < dataset.length; i++) {
+        const entry = dataset[i];
+        const timeElapsed = (entry.x - earliestTime) / 1000; // Convert to seconds
 
-      if (entry.y >= 300 && !dryDoneTime && timeElapsed >= 60) {
-        dryDoneTime = timeElapsed;
-        continue;
-      }
-      if (entry.y >= 380 && dryDoneTime && !maillardDoneTime) {
-        maillardDoneTime = timeElapsed;
-        continue;
-      }
-      if (maillardDoneTime) {
-        devDoneTime = totalRoastTime;
-        continue;
+        if (entry.y >= 300 && !dryDoneTime && timeElapsed >= 60) {
+          dryDoneTime = timeElapsed;
+          continue;
+        }
+        if (entry.y >= 380 && dryDoneTime && !maillardDoneTime) {
+          maillardDoneTime = timeElapsed;
+          continue;
+        }
+        if (maillardDoneTime) {
+          devDoneTime = totalRoastTime;
+          continue;
+        }
       }
     }
 
