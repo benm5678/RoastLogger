@@ -496,7 +496,7 @@ class BluetoothRoastLogger {
       this.chart.data.datasets[3] = {
         label: 'Target BT',
         data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.BT } }),
-        borderColor: 'rgba(0, 255, 0, 0.5)', // Light green
+        borderColor: 'rgba(212, 20, 61, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
         fill: false, // Ensure the line is not filled
@@ -506,7 +506,7 @@ class BluetoothRoastLogger {
       this.chart.data.datasets[4] = {
         label: 'Target ET',
         data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.MET } }),
-        borderColor: 'rgba(255, 0, 0, 0.5)', // Light red
+        borderColor: 'rgba(72, 152, 214, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
         fill: false, // Ensure the line is not filled
@@ -516,7 +516,7 @@ class BluetoothRoastLogger {
       this.chart.data.datasets[5] = {
         label: 'Target RoR',
         data: this.calculateRateOfRise(this.chart.data.datasets[3].data),
-        borderColor: 'rgba(55, 0, 0, 0.5)', // Light blue
+        borderColor: 'rgba(65, 172, 67, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
         fill: false, // Ensure the line is not filled
