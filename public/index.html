@@ -53,7 +53,7 @@
         <div class="coffee-input-container">
           <div class="coffee-input">
             <label for="coffeeName">Batch #:</label>
-            <input id="coffeeBatchNum" name="coffeeBatchNum" readonly disabled>
+            <input id="coffeeBatchNum" name="coffeeBatchNum" readonly>
           </div>
           <div class="coffee-input">
             <label for="coffeeName">Coffee Name:</label>
@@ -69,7 +69,7 @@
           </div>
           <div class="coffee-input">
             <label for="coffeeWeightLoss">Weight Loss (%):</label>
-            <input type="number" id="coffeeWeightLoss" name="coffeeWeightLoss" min="40" max="500" step="10" value="">
+            <input type="number" id="coffeeWeightLoss" name="coffeeWeightLoss" readonly min="40" max="500" step="10" value="">
           </div>
         </div>
         <pre id="errorMessage" class="error-message"></pre>
@@ -78,9 +78,6 @@
       <div class="section status">
         <div class="status-grid">
           <div class="status-item">
-            <strong>Start Time:</strong> <span id="roastStartTime">-</span>
-          </div>
-          <div class="status-item">
             <strong>BT:</strong> <span id="BT">-</span>
           </div>
           <div class="status-item">
@@ -88,6 +85,18 @@
           </div>
           <div class="status-item">
             <strong>RoR (F/min):</strong> <span id="RoR">-</span>
+          </div>
+          <div class="status-item">
+            <strong>Drying:</strong> <span id="dry-time">-</span>
+          </div>
+          <div class="status-item">
+            <strong>Maillard:</strong> <span id="maillard-time">-</span>
+          </div>
+          <div class="status-item">
+            <strong>Development:</strong> <span id="dev-time">-</span>
+          </div>
+          <div class="status-item">
+            <strong>Start Time:</strong> <span id="roastStartTime">-</span>
           </div>
           <div class="status-item">
             <strong>Duration:</strong> <span id="duration">-</span>
@@ -152,6 +161,6 @@
       }
     });
   </script>
-  <script src="index.js?v=0.0.23"></script>
+  <script src="index.js?v=0.0.24"></script>
 </body>
 </html>

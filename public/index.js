@@ -261,6 +261,8 @@ class BluetoothRoastLogger {
   resetParams() {
     this.roastStartTime = null;
     this.roastEndTime = null;
+    document.getElementById("coffeePostAmount").value = "-";
+    document.getElementById("coffeeWeightLoss").value = "-";
     this.logData = [];
   }
 
@@ -528,19 +530,61 @@ class BluetoothRoastLogger {
 
     // Update bt/et datasets
     this.chart.options.scales.x.ticks.display = true;
-    this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT } });
-    this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET } });
-    this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
+    const btData = this.chart.data.datasets[0].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.BT } });
+    const etData = this.chart.data.datasets[1].data = filteredData.map(entry => { return { x: new Date(entry.logTime - earliestTime).getTime(), y: entry.MET } });
+    const rorData = this.chart.data.datasets[2].data = this.calculateRateOfRise(this.chart.data.datasets[0].data);
     this.chart.update();
 
 
     // Update UI
-    const lastBT = this.chart.data.datasets[0].data.pop()
-    document.getElementById("BT").textContent = lastBT ? lastBT.y.toFixed(1) : '-';
-    const lastET = this.chart.data.datasets[1].data.pop()
-    document.getElementById("ET").textContent = lastET ? lastET.y.toFixed(1) : '-';
-    const lastRoR = this.chart.data.datasets[2].data.pop();
-    document.getElementById("RoR").textContent = lastRoR ? lastRoR.y.toFixed(1) : '-';
+    document.getElementById("BT").textContent = btData.length ? btData.at(-1).y.toFixed(1) : '-'
+    document.getElementById("ET").textContent = etData.length ? etData.at(-1).y.toFixed(1) : '-'
+    document.getElementById("RoR").textContent = rorData.length ? rorData.at(-1).y.toFixed(1) : '-'
+    this.updateStageTimes(btData);
+  }
+
+  updateStageTimes(dataset) {
+    // Initialize stage times
+    let dryDoneTime = null;
+    let maillardDoneTime = null;
+    let devDoneTime = null;
+
+    // Determine the earliest logTime
+    const earliestTime = Math.min(...dataset.map(entry => entry.x));
+    const totalRoastTime = (Math.max(...dataset.map(entry => entry.x)) - earliestTime) / 1000; // Total roast time in seconds
+
+    // Process data to find stage times
+    for (let i = 0; i < dataset.length; i++) {
+      const entry = dataset[i];
+      const timeElapsed = (entry.x - earliestTime) / 1000; // Convert to seconds
+
+      if (entry.y >= 300 && !dryDoneTime && timeElapsed >= 60) {
+        dryDoneTime = timeElapsed;
+        continue;
+      }
+      if (entry.y >= 380 && dryDoneTime && !maillardDoneTime) {
+        maillardDoneTime = timeElapsed;
+        continue;
+      }
+      if (maillardDoneTime) {
+        devDoneTime = totalRoastTime;
+        continue;
+      }
+    }
+
+    // Helper function to format time and percentage
+    function formatTimeAndPercentage(stageStart, stageEnd) {
+      const stageDuration = stageEnd - stageStart;
+      const minutes = Math.floor(stageDuration / 60);
+      const seconds = Math.floor(stageDuration % 60);
+      const percentage = ((stageDuration / totalRoastTime) * 100).toFixed(1);
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (${percentage}%)`;
+    }
+
+    // Update HTML fields
+    document.getElementById("dry-time").textContent = dryDoneTime ? formatTimeAndPercentage(0, dryDoneTime) : '-';
+    document.getElementById("maillard-time").textContent = maillardDoneTime ? formatTimeAndPercentage(dryDoneTime, maillardDoneTime) : '-';
+    document.getElementById("dev-time").textContent = devDoneTime ? formatTimeAndPercentage(maillardDoneTime, devDoneTime) : '-';
   }
 
   calculateRateOfRise(data) {
