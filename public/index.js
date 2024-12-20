@@ -586,6 +586,7 @@ class BluetoothRoastLogger {
     // Update HTML fields
     document.getElementById("dry-time").textContent = dryDoneTime ? formatTimeAndPercentage(0, dryDoneTime) : '-';
     document.getElementById("maillard-time").textContent = maillardDoneTime ? formatTimeAndPercentage(dryDoneTime, maillardDoneTime) : '-';
+    document.getElementById("fc-time").textContent = maillardDoneTime ? formatTimeAndPercentage(0, maillardDoneTime) : '-';
     document.getElementById("dev-time").textContent = devDoneTime ? formatTimeAndPercentage(maillardDoneTime, devDoneTime) : '-';
   }
 
