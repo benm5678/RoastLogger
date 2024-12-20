@@ -34,16 +34,16 @@ class BluetoothRoastLogger {
           {
             label: 'BT',
             data: [],
-            borderColor: 'rgba(212, 20, 61, 1)',
-            backgroundColor: 'rgba(212, 20, 61, 0.2)',
+            borderColor: 'rgba(72, 152, 214, 1)',
+            backgroundColor: 'rgba(72, 152, 214, 0.2)',
             fill: false,
             tension: 0.1,
           },
           {
             label: 'ET',
             data: [],
-            borderColor: 'rgba(72, 152, 214, 1)',
-            backgroundColor: 'rgba(72, 152, 214, 0.2)',
+            borderColor: 'rgba(212, 20, 61, 1)',
+            backgroundColor: 'rgba(212, 20, 61, 0.2)',
             fill: false,
             tension: 0.1,
           },
@@ -496,7 +496,7 @@ class BluetoothRoastLogger {
       this.chart.data.datasets[3] = {
         label: 'Target BT',
         data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.BT } }),
-        borderColor: 'rgba(212, 20, 61, 0.5)',
+        borderColor: 'rgba(72, 152, 214, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
         fill: false, // Ensure the line is not filled
@@ -506,7 +506,7 @@ class BluetoothRoastLogger {
       this.chart.data.datasets[4] = {
         label: 'Target ET',
         data: filteredDataToMatch.map(entry => { return { x: new Date(entry.logTime - earliestTimeToMatch).getTime(), y: entry.MET } }),
-        borderColor: 'rgba(72, 152, 214, 0.5)',
+        borderColor: 'rgba(212, 20, 61, 0.5)',
         borderWidth: 1,
         borderDash: [5, 5], // Dashed line
         fill: false, // Ensure the line is not filled
