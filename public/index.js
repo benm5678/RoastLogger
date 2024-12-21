@@ -554,7 +554,7 @@ class BluetoothRoastLogger {
     const totalRoastTime = (Math.max(...dataset.map(entry => entry.x)) - earliestTime) / 1000; // Total roast time in seconds
 
     // Process data to find stage times [skip if we're logging and not roasting yet]
-    if (!(this.isLogging && !this.isRoasting)) {
+    if (!(this.isLogging() && !this.isRoasting())) {
       for (let i = 0; i < dataset.length; i++) {
         const entry = dataset[i];
         const timeElapsed = (entry.x - earliestTime) / 1000; // Convert to seconds
@@ -567,10 +567,15 @@ class BluetoothRoastLogger {
           maillardDoneTime = timeElapsed;
           continue;
         }
-        if (maillardDoneTime) {
-          devDoneTime = totalRoastTime;
-          continue;
-        }
+      }
+
+      // Adjust to get updated time of current segment
+      if (!dryDoneTime) {
+        dryDoneTime = totalRoastTime;
+      } else if (!maillardDoneTime) {
+        maillardDoneTime = totalRoastTime;
+      } else {
+        devDoneTime = totalRoastTime;
       }
     }
 
@@ -584,10 +589,38 @@ class BluetoothRoastLogger {
     }
 
     // Update HTML fields
-    document.getElementById("dry-time").textContent = dryDoneTime ? formatTimeAndPercentage(0, dryDoneTime) : '-';
-    document.getElementById("maillard-time").textContent = maillardDoneTime ? formatTimeAndPercentage(dryDoneTime, maillardDoneTime) : '-';
     document.getElementById("fc-time").textContent = maillardDoneTime ? formatTimeAndPercentage(0, maillardDoneTime) : '-';
-    document.getElementById("dev-time").textContent = devDoneTime ? formatTimeAndPercentage(maillardDoneTime, devDoneTime) : '-';
+    this.drawBar(totalRoastTime, dryDoneTime, maillardDoneTime ? maillardDoneTime - dryDoneTime : null, devDoneTime ? devDoneTime - maillardDoneTime : null);
+  }
+
+  formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${secs}`;
+  }
+
+  createSegment(duration, total, className, label) {
+    const segment = document.createElement('div');
+    segment.className = `segment ${className}`;
+    const percentage = ((duration / total) * 100).toFixed(1);
+    segment.style.width = `${percentage}%`;
+    segment.textContent = `${label} (${this.formatTime(duration)} / ${percentage}%)`;
+    return segment;
+  }
+
+  drawBar(totalRoastTime, totalDryTime, totalMaillardTime, totalDevTime) {
+    const barContainer = document.getElementById('bar-container');
+    barContainer.innerHTML = '';
+
+    if (totalDryTime) {
+      barContainer.appendChild(this.createSegment(totalDryTime, totalRoastTime, 'dry', 'Drying'));
+    }
+    if (totalMaillardTime) {
+      barContainer.appendChild(this.createSegment(totalMaillardTime, totalRoastTime, 'maillard', 'Maillard'));
+    }
+    if (totalDevTime) {
+      barContainer.appendChild(this.createSegment(totalDevTime, totalRoastTime, 'dev', 'Development'));
+    }
   }
 
   calculateRateOfRise(data) {
