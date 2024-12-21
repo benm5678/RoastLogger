@@ -89,11 +89,11 @@ body {
 
 /* Canvas */
 canvas {
-  flex-grow: 1;
   border: 1px solid #ccc;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   object-fit: contain;
+  overflow: hidden;
 }
 
 .coffee-input {
@@ -128,7 +128,7 @@ canvas {
 /* Main Content */
 .main-content {
   flex-grow: 1;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   overflow: auto;
   gap: 15px; /* Adds consistent spacing between sections */

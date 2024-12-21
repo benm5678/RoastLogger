@@ -721,8 +721,17 @@ class BluetoothRoastLogger {
     } else {
       roastData.logData = [];
     }
+
+    // Load start/end times
     roastData.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
     roastData.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
+    if (roastData.roastEndTime) {
+      // const adjustedRoastData = this.getAdjustedRoastData(roastData.logData); // Adjust data once roast finished to get accurat start/stop
+      // roastData.logData = adjustedRoastData.updatedLogData;
+      // roastData.roastStartTime = adjustedRoastData.startTime;
+      // roastData.roastEndTime = adjustedRoastData.endTime;
+      this.updateRoastDuration(roastData.roastEndTime - roastData.roastStartTime);
+    }
 
     // Load info
     this.logData = roastData.logData;
@@ -740,7 +749,44 @@ class BluetoothRoastLogger {
     this.updateUIState();
     this.updateChart();
   }
+
+  getAdjustedRoastData(logData) {
+    if (!logData || logData.length === 0) return { startTime: null, endTime: null, updatedLogData: [] };
+
+    let startTime = null;
+    let endTime = null;
+    let highestBT = -Infinity;
+    let highestBTIndex = -1;
+
+    // Find the start time
+    for (let i = 0; i < logData.length; i++) {
+      if (logData[i].BT > highestBT) {
+        highestBT = logData[i].BT;
+        highestBTIndex = i;
+      } else if (logData[i].BT < highestBT) {
+        startTime = logData[highestBTIndex].logTime;
+        break;
+      }
+    }
+
+    // Find the end time
+    highestBT = -Infinity;
+    let endIndex = -1;
+    for (let i = logData.length - 1; i >= 0; i--) {
+      if (logData[i].BT > highestBT) {
+        highestBT = logData[i].BT;
+        endTime = logData[i].logTime;
+        endIndex = i;
+      }
+    }
+
+    // Trim the logData array
+    const updatedLogData = logData.slice(highestBTIndex, endIndex + 1);
+
+    return { startTime, endTime, updatedLogData };
+  }
 }
+
 
 // Initialize the BluetoothRoastLogger
 const roastLogger = new BluetoothRoastLogger(debug);
