@@ -610,6 +610,9 @@ class BluetoothRoastLogger {
 
   drawBar(totalRoastTime, totalDryTime, totalMaillardTime, totalDevTime) {
     const barContainer = document.getElementById('bar-container');
+    const chartArea = Chart.getChart(document.getElementById('chart')).chartArea;
+    const chartWidth = chartArea.right - chartArea.left;
+    barContainer.style.width = `${chartWidth}px`;
     barContainer.innerHTML = '';
 
     if (totalDryTime) {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roast Logger</title>
-  <link rel="stylesheet" href="styles.css?v=0.0.11">
+  <link rel="stylesheet" href="styles.css?v=0.0.12">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -96,10 +96,13 @@
           <div class="status-item">
             <strong>RoR (F/min):</strong> <span id="RoR" style="color: rgb(65, 172, 67);">-</span>
           </div>
-
-          <div id="bar-container" class="bar-container"></div>
         </div>
       </div>
+
+      <div class="bar-container-wrapper">
+        <div id="bar-container" class="bar-container"></div>
+      </div>
+
       <canvas id="chart"></canvas>
     </div>
   </div>
@@ -157,6 +160,6 @@
       }
     });
   </script>
-  <script src="index.js?v=0.0.32"></script>
+  <script src="index.js?v=0.0.33"></script>
 </body>
 </html>
