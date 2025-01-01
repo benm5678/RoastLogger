@@ -762,10 +762,10 @@ class BluetoothRoastLogger {
     roastData.roastStartTime = roastData.roastStartTime ? roastData.roastStartTime.toDate() : null;
     roastData.roastEndTime = roastData.roastEndTime ? roastData.roastEndTime.toDate() : null;
     if (roastData.roastEndTime) {
-      // const adjustedRoastData = this.getAdjustedRoastData(roastData.logData); // Adjust data once roast finished to get accurat start/stop
-      // roastData.logData = adjustedRoastData.updatedLogData;
-      // roastData.roastStartTime = adjustedRoastData.startTime;
-      // roastData.roastEndTime = adjustedRoastData.endTime;
+      const adjustedRoastData = this.getAdjustedRoastData(roastData.logData, roastData.roastStartTime, roastData.roastEndTime); // Adjust data once roast finished to get accurat start/stop
+      roastData.logData = adjustedRoastData.updatedLogData;
+      roastData.roastStartTime = adjustedRoastData.startTime;
+      roastData.roastEndTime = adjustedRoastData.endTime;
       this.updateRoastDuration(roastData.roastEndTime - roastData.roastStartTime);
     }
 
@@ -786,7 +786,7 @@ class BluetoothRoastLogger {
     this.updateChart();
   }
 
-  getAdjustedRoastData(logData) {
+  getAdjustedRoastData(logData, roastStartTime, roastEndTime) {
     if (!logData || logData.length === 0) return { startTime: null, endTime: null, updatedLogData: [] };
 
     let startTime = null;
@@ -796,6 +796,8 @@ class BluetoothRoastLogger {
 
     // Find the start time
     for (let i = 0; i < logData.length; i++) {
+      if (logData[i].logTime < roastStartTime) continue; // Skip points before roast start
+
       if (logData[i].BT > highestBT) {
         highestBT = logData[i].BT;
         highestBTIndex = i;
@@ -809,6 +811,9 @@ class BluetoothRoastLogger {
     highestBT = -Infinity;
     let endIndex = -1;
     for (let i = logData.length - 1; i >= 0; i--) {
+      if (logData[i].logTime > roastEndTime) continue; // Skip points after roast end
+      if (logData[i].logTime <= roastStartTime) break; // Skip points before roast start
+
       if (logData[i].BT > highestBT) {
         highestBT = logData[i].BT;
         endTime = logData[i].logTime;
@@ -920,7 +925,7 @@ function loadRoastNames() {
 
   collectionRef.where(firebase.firestore.FieldPath.documentId(), '>=', 'roast_')
     .orderBy('roastStartTime', 'desc')
-    .limit(20)
+    .limit(15)
     .get()
     .then((querySnapshot) => {
       const roastNamesList = document.getElementById('roastNamesList');
